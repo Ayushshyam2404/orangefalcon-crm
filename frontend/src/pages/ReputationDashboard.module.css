@@ -1,0 +1,214 @@
+.page { padding: 24px; }
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.title { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin: 0 0 2px; }
+.subtitle { font-size: 13px; color: var(--text2); margin: 0; }
+
+/* ── Stat cards ──────────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.statCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+.statCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--sc, var(--accent));
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.statIcon {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+.statValue { font-size: 30px; font-weight: 700; letter-spacing: -1px; }
+.statLabel { font-size: 12px; color: var(--text2); font-weight: 500; margin-top: 3px; }
+
+/* ── Alert section ───────────────────────────────────────── */
+.alertSection {
+  background: rgba(239, 68, 68, 0.04);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+.alertTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red, #ef4444);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+.alertGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+.alertCard {
+  background: var(--surface);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-sm, 8px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.alertHotelName { font-size: 13px; font-weight: 600; }
+.alertHotelCity { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ── Section header ──────────────────────────────────────── */
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sectionTitle { font-size: 15px; font-weight: 700; }
+.sectionSub { font-size: 12px; color: var(--text3); }
+
+/* ── Hotel card grid ─────────────────────────────────────── */
+.hotelGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.hotelCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.hotelCard:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(255, 107, 0, 0.08);
+}
+.hotelCardAlert {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.02);
+}
+.hotelCardAlert:hover {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.08);
+}
+
+.hotelCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.hotelCardInfo { flex: 1; }
+.hotelCardName { font-size: 14px; font-weight: 700; }
+.hotelCardCity { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+.hotelCardStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-bottom: 10px;
+}
+.hotelStatItem { text-align: center; }
+.hotelStatLabel {
+  display: block;
+  font-size: 10px;
+  color: var(--text3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 3px;
+}
+.hotelStatValue { font-size: 15px; font-weight: 700; }
+
+.hotelCardFooter {
+  font-size: 11px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.noScoreChip {
+  font-size: 11px;
+  color: var(--text3);
+  background: var(--surface2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.needsImprovementBadge {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--red, #ef4444);
+  background: rgba(239, 68, 68, 0.08);
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+/* ── Recent scores ───────────────────────────────────────── */
+.recentSection {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.recentHeader {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 16px 18px 0;
+  margin-bottom: 4px;
+}
+.recentItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.recentItem:last-child { border-bottom: none; }
+.recentHotel { font-size: 13px; font-weight: 600; }
+.recentMeta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.recentBy { font-size: 11px; color: var(--text3); white-space: nowrap; }
+.emptyState { padding: 32px 18px; font-size: 13px; color: var(--text3); text-align: center; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .hotelGrid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .statsGrid { grid-template-columns: 1fr 1fr; }
+}

@@ -1,0 +1,184 @@
+/* ── Announcements page specific styles ───────────────────────────────────── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 18px 20px 14px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Card header ── */
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cardLeft {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.priorityDot {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+  margin: 0 0 5px;
+  line-height: 1.3;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.noticeDate {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 500;
+}
+
+.postedBy {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.ago {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.dot {
+  color: var(--text3);
+  font-size: 11px;
+}
+
+/* ── Right side ── */
+.cardRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.priorityBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.iconBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  color: var(--text3);
+}
+.iconBtn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.deleteBtn:hover {
+  border-color: var(--red) !important;
+  color: var(--red) !important;
+  background: var(--red-soft) !important;
+}
+
+/* ── Body ── */
+.body {
+  font-size: 13.5px;
+  color: var(--text2);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.readMore {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 0 0;
+  transition: opacity 0.15s;
+}
+.readMore:hover { opacity: 0.75; }
+
+/* ── Empty state ── */
+.emptyWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 24px;
+  gap: 10px;
+}
+
+.emptyIcon {
+  width: 56px;
+  height: 56px;
+  background: var(--surface2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.emptyText {
+  font-size: 14px;
+  color: var(--text3);
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .cardHeader { flex-direction: column; gap: 10px; }
+  .cardRight { align-self: flex-start; }
+  .heading { font-size: 14px; }
+}

@@ -1,0 +1,540 @@
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 24px 22px 20px;
+  width: 420px;
+  max-width: 96vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: panelIn 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: scale(0.93) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+
+.closeBtn {
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 19px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.closeBtn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+/* ── Month navigation ────────────────────────────────────────────────────── */
+
+.monthNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.navBtn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.navBtn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.navBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.monthLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+/* ── Calendar grid ───────────────────────────────────────────────────────── */
+
+.calWrap {
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.loadingOverlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 10, 15, 0.5);
+  border-radius: 10px;
+  z-index: 2;
+  font-size: 12px; color: var(--text3);
+  letter-spacing: 0.5px;
+}
+
+.calGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.dayLabel {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding-bottom: 6px;
+}
+
+.emptyCell { /* filler for alignment */ }
+
+.dayCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 2px 4px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  min-height: 40px;
+}
+.dayCell:hover:not(.isFuture) {
+  background: var(--surface2);
+}
+
+.dayNum {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  line-height: 1;
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+  align-items: center;
+}
+
+.dotGreen {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  display: block;
+}
+.dotLive {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent);
+  display: block;
+  animation: livePulse 1.2s infinite;
+}
+.dotOrange {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--yellow);
+  display: block;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.4); }
+}
+
+/* State modifiers */
+.isToday { border-color: var(--accent); }
+.isToday .dayNum { color: var(--accent); font-weight: 700; }
+.isFuture .dayNum { color: var(--text3); }
+.isFuture { cursor: default; }
+
+.isSelected {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+}
+.isSelected .dayNum { color: var(--accent); font-weight: 700; }
+
+/* ── Legend ──────────────────────────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  gap: 14px;
+  margin: 8px 0 12px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 0.3px;
+}
+
+.legendDot {
+  width: 7px; height: 7px; border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.lgGreen  { background: var(--green); }
+.lgLive   { background: var(--accent); animation: livePulse 1.2s infinite; }
+.lgOrange { background: var(--yellow); }
+.lgToday  { background: transparent; border: 1.5px solid var(--accent); }
+
+/* ── Monthly summary ─────────────────────────────────────────────────────── */
+
+.summaryRow {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 6px;
+  margin-bottom: 14px;
+}
+
+.summaryItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.summaryVal {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryLbl {
+  font-size: 9px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.summaryDivider {
+  width: 1px;
+  background: var(--border);
+  margin: 4px 0;
+  align-self: stretch;
+}
+
+/* ── Selected day details ────────────────────────────────────────────────── */
+
+.dayDetail {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.dayDetailDate {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.workInfo { display: flex; flex-direction: column; gap: 6px; }
+
+.workHours {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.liveDot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: livePulse 1.2s infinite;
+}
+
+.liveChip {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+}
+
+.timesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.timeChip {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.leaveInfo { display: flex; flex-direction: column; gap: 6px; }
+
+.leaveTypeRow { display: flex; align-items: center; gap: 8px; }
+
+.leaveTypeBadge {
+  background: rgba(241, 196, 15, 0.15);
+  color: var(--yellow);
+  border: 1px solid rgba(241, 196, 15, 0.25);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.leaveStatus {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+.status_pending  { background: var(--yellow-soft);  color: var(--yellow); }
+.status_approved { background: var(--green-soft);   color: var(--green); }
+.status_denied   { background: var(--red-soft);     color: var(--red); }
+
+.leaveReason {
+  font-size: 11px;
+  color: var(--text3);
+  margin: 0;
+  font-style: italic;
+}
+
+.cancelLeaveBtn {
+  align-self: flex-start;
+  background: var(--red-soft);
+  color: var(--red);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cancelLeaveBtn:hover { background: rgba(231, 76, 60, 0.22); }
+
+.noRecord {
+  font-size: 12px;
+  color: var(--text3);
+  font-style: italic;
+}
+
+/* ── Leave request form ──────────────────────────────────────────────────── */
+
+.leaveForm {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeIn 0.15s ease;
+}
+
+.leaveFormTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.leaveFormRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.leaveField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.leaveField label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.optLabel {
+  font-weight: 400;
+  color: var(--text3);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+}
+
+.leaveField input,
+.leaveField select,
+.leaveField textarea {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.leaveField input:focus,
+.leaveField select:focus,
+.leaveField textarea:focus {
+  border-color: var(--accent);
+}
+
+.leaveField select option {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.leaveFormActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cancelFormBtn {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 14px;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.cancelFormBtn:hover { background: var(--border); }
+
+.submitBtn {
+  background: var(--accent);
+  border: none;
+  border-radius: 7px;
+  padding: 7px 16px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.submitBtn:hover:not(:disabled) { filter: brightness(1.15); }
+.submitBtn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Take leave button ───────────────────────────────────────────────────── */
+
+.takeLeaveBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: var(--surface2);
+  border: 1px dashed var(--border2);
+  border-radius: 10px;
+  padding: 10px;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.2px;
+}
+.takeLeaveBtn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 18px 14px 16px;
+    border-radius: 16px;
+  }
+
+  .summaryRow { gap: 0; }
+  .summaryVal { font-size: 15px; }
+  .leaveFormRow { grid-template-columns: 1fr; }
+}

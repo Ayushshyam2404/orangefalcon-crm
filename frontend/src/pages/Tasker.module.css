@@ -1,0 +1,725 @@
+.taskCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.taskCard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.taskCard:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(255, 107, 0, 0.08);
+}
+
+.taskCard.pending::before {
+  background: #ff6b00;
+}
+
+.taskCard.inProgress::before {
+  background: #3b82f6;
+}
+
+.taskCard.completed::before {
+  background: #10b981;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.taskTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+  flex: 1;
+}
+
+.taskMeta {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 5px;
+}
+
+.statusBadge {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.statusBadge.pending {
+  background: rgba(255, 107, 0, 0.12);
+  color: #ff6b00;
+  border: 1px solid rgba(255, 107, 0, 0.2);
+}
+
+.statusBadge.inProgress {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.statusBadge.completed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.cardContent {
+  margin-bottom: 16px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.infoLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  min-width: 70px;
+  margin-top: 1px;
+}
+
+.infoValue {
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+  word-break: break-word;
+}
+
+.infoValue.muted {
+  color: var(--text2);
+  font-size: 12px;
+}
+
+.cardFooter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.overdueBadge {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Grid layout for task list */
+.tasksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text3);
+}
+
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  background: var(--surface2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--text3);
+}
+
+.emptyState p {
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+/* ─── Tabs ─────────────────────────────────────────────────────────────────── */
+.tabRow {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tabBtn:hover {
+  color: var(--text);
+}
+
+.tabActive {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tabBadge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+/* ─── Daily Routine ─────────────────────────────────────────────────────────── */
+.routineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.routineDateLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.routineProgress {
+  font-size: 13px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progressBar {
+  width: 120px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.routineChecklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.checklistItem {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color 0.2s;
+}
+
+.checklistItem:hover {
+  border-color: var(--accent);
+}
+
+.checklistDone {
+  opacity: 0.6;
+}
+
+.checklistRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.checkbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+  color: #fff;
+}
+
+.checkboxChecked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checklistName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.checklistDone .checklistName {
+  text-decoration: line-through;
+  color: var(--text3);
+}
+
+.checklistDefaultNote {
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 3px;
+  font-style: italic;
+}
+
+.checklistUserNote {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 3px;
+  white-space: pre-wrap;
+}
+
+.noteToggle {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: var(--text3);
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.noteToggle:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.noteToggleActive {
+  background: rgba(255, 107, 0, 0.1);
+  color: var(--accent);
+  border-color: rgba(255, 107, 0, 0.3);
+}
+
+.noteExpanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.defaultNoteHint {
+  font-size: 12px;
+  color: var(--text3);
+  font-style: italic;
+  margin-bottom: 8px;
+}
+
+.noteTextarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.noteTextarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ─── Routine Template Modal ────────────────────────────────────────────────── */
+.routineList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.routineTemplateItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.routineAddRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+/* ─── Notion Task List ────────────────────────────────────────────────────── */
+
+.taskList {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.taskRow {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.taskRow:last-child {
+  border-bottom: none;
+}
+.taskRow:hover {
+  background: var(--surface2);
+}
+
+.taskRowMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.taskRowDone .taskRowName {
+  text-decoration: line-through;
+  color: var(--text3);
+}
+
+.statusDotBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.statusDotBtn:hover {
+  transform: scale(1.2);
+}
+
+.taskRowName {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.taskRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.statusPill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.3px;
+}
+
+.deadlineChip {
+  font-size: 12px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+.deadlineOverdue {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.taskRowActions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.taskRow:hover .taskRowActions {
+  opacity: 1;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px 7px;
+  border-radius: 5px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  transition: background 0.12s, color 0.12s;
+}
+.iconBtn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.iconBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.taskRowExpand {
+  padding: 12px 16px 14px 50px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* ─── Quick Add Row ──────────────────────────────────────────────────────── */
+
+.quickAddRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.quickAddPlus {
+  font-size: 18px;
+  color: var(--text3);
+  line-height: 34px;
+  flex-shrink: 0;
+}
+
+.quickAddInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text2);
+  padding: 7px 0;
+  font-family: inherit;
+  width: 100%;
+}
+.quickAddInput::placeholder { color: var(--text3); }
+.quickAddInput:focus { color: var(--text); }
+
+.quickAddSubmit {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  align-self: center;
+  transition: opacity 0.12s;
+}
+.quickAddSubmit:hover { opacity: 0.85; }
+
+/* ─── Date Navigator ─────────────────────────────────────────────────────── */
+
+.dateNav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+.dateNavBtn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: 20px;
+  color: var(--text2);
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1.4;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.dateNavBtn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.dateNavCenter {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dateNavLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.todayPill {
+  background: rgba(255, 107, 0, 0.1);
+  color: var(--accent);
+  border: 1px solid rgba(255, 107, 0, 0.25);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  letter-spacing: 0.4px;
+}
+
+.goTodayBtn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.routineProgressRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.routineProgressText {
+  font-size: 13px;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+.resetBtn {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  white-space: nowrap;
+}
+.resetBtn:hover { color: #ef4444; }
+
+.readonlyBanner {
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #3b82f6;
+  margin-bottom: 16px;
+}
+
+.checkboxReadonly {
+  cursor: default;
+  opacity: 0.65;
+}
+
+/* ─── Page Header ───────────────────────────────────────────────────────────── */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .pageHeader { flex-direction: column; gap: 12px; align-items: stretch; }
+  .toolbar { flex-wrap: wrap; }
+  .tasksGrid { grid-template-columns: 1fr; }
+  .taskRowMeta { display: none; }
+  .taskRowActions { opacity: 1; }
+  .dateNav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+  .dateNavLabel { font-size: 13px; }
+  .routineProgressRow { flex-wrap: wrap; }
+}
+
+

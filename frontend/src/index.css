@@ -1,0 +1,125 @@
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #1a1a24;
+  --surface3: #22222f;
+  --border: rgba(255, 255, 255, 0.07);
+  --border2: rgba(255, 255, 255, 0.12);
+  --text: #f0f0f5;
+  --text2: #8888a0;
+  --text3: #4a4a60;
+  --accent: #ff6b00;
+  --accent2: #ff8c38;
+  --accent-soft: rgba(255, 107, 0, 0.12);
+  --accent-glow: rgba(255, 107, 0, 0.25);
+  --green: #2ecc71;
+  --green-soft: rgba(46, 204, 113, 0.12);
+  --red: #e74c3c;
+  --red-soft: rgba(231, 76, 60, 0.12);
+  --yellow: #f1c40f;
+  --yellow-soft: rgba(241, 196, 15, 0.12);
+  --blue: #3498db;
+  --blue-soft: rgba(52, 152, 219, 0.12);
+  --purple: #9b59b6;
+  --purple-soft: rgba(155, 89, 182, 0.12);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 50px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] {
+  --bg: #f4f4f8;
+  --surface: #ffffff;
+  --surface2: #ededf3;
+  --surface3: #e0e0ea;
+  --border: rgba(0, 0, 0, 0.08);
+  --border2: rgba(0, 0, 0, 0.14);
+  --text: #111118;
+  --text2: #555570;
+  --text3: #9999b0;
+  --accent: #ff6b00;
+  --accent2: #e85c00;
+  --accent-soft: rgba(255, 107, 0, 0.1);
+  --accent-glow: rgba(255, 107, 0, 0.2);
+  --shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: inherit;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* ─── Responsive App Layout ────────────────────────────────────────────────── */
+.appLayout { display: flex; }
+
+.appMain {
+  margin-left: 236px;
+  min-height: 100vh;
+  padding: 28px 32px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hamburgerBtn {
+  display: none;
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 200;
+  width: 40px;
+  height: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  color: var(--text);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: var(--shadow);
+}
+.hamburgerBtn:hover { background: var(--surface2); }
+
+.sidebarOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 110;
+  backdrop-filter: blur(2px);
+  animation: overlayIn 0.2s ease;
+}
+@keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+@media (max-width: 768px) {
+  .hamburgerBtn { display: flex; }
+  .appMain {
+    margin-left: 0;
+    padding: 64px 16px 28px;
+  }
+}
