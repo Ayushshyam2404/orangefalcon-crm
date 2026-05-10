@@ -71,6 +71,25 @@ router.post('/leaves', async (req, res) => {
   }
 });
 
+// PATCH /api/attendance/leaves/:id/status — approve or deny (admin only)
+router.patch('/leaves/:id/status', adminOnly, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['approved', 'denied'].includes(status)) {
+      return res.status(400).json({ message: 'Status must be approved or denied' });
+    }
+    const leave = await LeaveRequest.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('user', 'name username avatar title');
+    if (!leave) return res.status(404).json({ message: 'Leave request not found' });
+    res.json(leave);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // DELETE /api/attendance/leaves/:id — cancel a pending leave request
 router.delete('/leaves/:id', async (req, res) => {
   try {
@@ -81,6 +100,21 @@ router.delete('/leaves/:id', async (req, res) => {
     });
     if (!leave) return res.status(404).json({ message: 'Leave not found or already processed' });
     res.json({ message: 'Leave cancelled' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/attendance/admin/leaves — all leave requests with user info (admin only)
+router.get('/admin/leaves', adminOnly, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    const leaves = await LeaveRequest.find(filter)
+      .populate('user', 'name username avatar title role')
+      .sort({ createdAt: -1 });
+    res.json(leaves);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

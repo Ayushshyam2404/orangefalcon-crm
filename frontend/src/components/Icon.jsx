@@ -143,6 +143,21 @@ export function Icon({ name, size = 16, color = 'currentColor', style = {} }) {
         <path d="M10 6v4l3 3" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </>
     ),
+    mail: (
+      <>
+        <rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M2 7l8 5 8-5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
+    sun: (
+      <>
+        <circle cx="10" cy="10" r="4" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      </>
+    ),
+    moon: (
+      <path d="M17 12A7 7 0 119 4a5.5 5.5 0 008 8z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    ),
   }
 
   return (

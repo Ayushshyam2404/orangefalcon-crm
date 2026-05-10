@@ -657,3 +657,311 @@
   font-weight: 600;
 }
 
+
+/* ─── Report Recipients Tab ───────────────────────────────────────────── */
+.recipientList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.recipientEmpty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 13px;
+  font-style: italic;
+  background: var(--surface2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.recipientRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s;
+}
+
+.recipientRow:hover {
+  border-color: var(--accent);
+}
+
+.recipientEmail {
+  font-size: 13px;
+  color: var(--text);
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.recipientRemove {
+  padding: 4px 12px;
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.recipientRemove:hover {
+  background: rgba(239,68,68,0.2);
+  border-color: #ef4444;
+}
+
+.recipientAddRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.recipientAddRow .companyInput {
+  flex: 1;
+}
+
+.sendReportBtnSettings {
+  padding: 10px 20px;
+  background: rgba(59,130,246,0.12);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.3);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sendReportBtnSettings:hover:not(:disabled) {
+  background: rgba(59,130,246,0.22);
+  border-color: #3b82f6;
+}
+
+.sendReportBtnSettings:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .recipientAddRow { flex-direction: column; align-items: stretch; }
+  .recipientAddRow .addBtn { width: 100%; }
+}
+
+/* ── Backup & Restore tab ──────────────────────────────────────────────────── */
+.backupSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.backupSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.backupSectionHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.backupHint {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.backupHint code {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+}
+
+.backupDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 0;
+}
+
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  background: linear-gradient(135deg, var(--accent) 0%, #ff8822 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 10px rgba(255,107,0,0.35);
+}
+
+.exportBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(255,107,0,0.5);
+}
+
+.exportBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.restoreWarning {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.55;
+}
+
+.dropZone {
+  display: block;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.dropZone:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dropZoneEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 20px;
+  color: var(--text2);
+  font-size: 13px;
+}
+
+.dropZoneEmpty code {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+}
+
+.dropZoneSelected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.dropZoneClear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.dropZoneClear:hover {
+  color: #ef4444;
+  background: rgba(239,68,68,0.1);
+}
+
+.resetBtn {
+  padding: 12px 24px;
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  border: 1.5px solid rgba(239,68,68,0.4);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.resetBtn:hover:not(:disabled) {
+  background: rgba(239,68,68,0.18);
+  border-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+.resetBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.restoreSuccess {
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.3);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #22c55e;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.restoreError {
+  background: rgba(239,68,68,0.08);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #ef4444;
+}
+
+.restoreResults {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.restoreResultRow {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.restoreCol {
+  font-weight: 700;
+  color: var(--text);
+  min-width: 140px;
+}
+
+@media (max-width: 480px) {
+  .exportBtn, .resetBtn { width: 100%; justify-content: center; }
+}

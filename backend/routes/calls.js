@@ -7,10 +7,11 @@ const router = express.Router();
 // GET /api/calls
 router.get('/', protect, async (req, res) => {
   try {
-    const { outcome, search } = req.query;
+    const { outcome, search, category } = req.query;
     let filter = {};
     if (outcome && outcome !== 'all') filter.outcome = outcome;
     if (search) filter.name = { $regex: search, $options: 'i' };
+    if (category) filter.category = category;
 
     const calls = await Call.find(filter)
       .populate('loggedBy', 'name username')
@@ -24,10 +25,10 @@ router.get('/', protect, async (req, res) => {
 // POST /api/calls
 router.post('/', protect, async (req, res) => {
   try {
-    const { name, phone, outcome, notes } = req.body;
+    const { name, phone, outcome, notes, category } = req.body;
     if (!name) return res.status(400).json({ message: 'Prospect name is required' });
 
-    const call = await Call.create({ name, phone, outcome, notes, loggedBy: req.user._id });
+    const call = await Call.create({ name, phone, outcome, notes, category: category || 'sales', loggedBy: req.user._id });
     const populated = await call.populate('loggedBy', 'name username');
     res.status(201).json(populated);
   } catch (err) {

@@ -10,6 +10,15 @@ const MONTHS = [
   'July','August','September','October','November','December',
 ]
 
+const LEAVE_TYPES = {
+  sick: 'Sick Leave',
+  vacation: 'Vacation',
+  personal: 'Personal',
+  other: 'Other',
+}
+
+const LEAVE_STATUS_FILTER = ['all', 'pending', 'approved', 'denied']
+
 function fmtHours(secs) {
   if (!secs || secs <= 0) return '0h 0m'
   const h = Math.floor(secs / 3600)
@@ -335,6 +344,133 @@ function ReportModal({ onClose, year, month, monthLabel }) {
   )
 }
 
+// ─── Leave Requests Panel ───────────────────────────────────────────────────────
+function LeaveRequestsPanel() {
+  const [leaves, setLeaves]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [statusFilter, setStatus]   = useState('pending')
+  const [processing, setProcessing] = useState({}) // id -> true while patching
+
+  const fetchLeaves = useCallback(async (s) => {
+    setLoading(true)
+    try {
+      const params = s !== 'all' ? { status: s } : {}
+      const { data } = await api.get('/attendance/admin/leaves', { params })
+      setLeaves(data)
+    } catch {
+      setLeaves([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchLeaves(statusFilter) }, [fetchLeaves, statusFilter])
+
+  const decide = async (id, newStatus) => {
+    setProcessing(p => ({ ...p, [id]: true }))
+    try {
+      await api.patch(`/attendance/leaves/${id}/status`, { status: newStatus })
+      await fetchLeaves(statusFilter)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update leave')
+    } finally {
+      setProcessing(p => ({ ...p, [id]: false }))
+    }
+  }
+
+  const pendingCount = leaves.filter(l => l.status === 'pending').length
+
+  return (
+    <div className={own.leavesPanel}>
+      <div className={own.leavesPanelHeader}>
+        <div className={own.leavesPanelTitle}>
+          <Icon name="calendar" size={15} color="var(--accent)" />
+          Leave Requests
+          {statusFilter === 'pending' && pendingCount > 0 && (
+            <span className={own.pendingCount}>{pendingCount} pending</span>
+          )}
+        </div>
+        <div className={own.leavesFilterRow}>
+          {LEAVE_STATUS_FILTER.map(s => (
+            <button
+              key={s}
+              className={`${own.filterTab} ${statusFilter === s ? own.filterTabActive : ''}`}
+              onClick={() => setStatus(s)}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <p className={own.leavesEmpty}>Loading…</p>
+      ) : leaves.length === 0 ? (
+        <p className={own.leavesEmpty}>No {statusFilter !== 'all' ? statusFilter : ''} leave requests.</p>
+      ) : (
+        <div className={own.leavesList}>
+          {leaves.map(leave => {
+            const user = leave.user || {}
+            const busy = processing[leave._id]
+            const isPending = leave.status === 'pending'
+            return (
+              <div key={leave._id} className={own.leaveRow}>
+                {/* Avatar */}
+                <div className={own.leaveAvatar}>
+                  {user.avatar
+                    ? <img src={user.avatar} alt="" />
+                    : <span>{user.name?.[0]?.toUpperCase() || '?'}</span>
+                  }
+                </div>
+                {/* Info */}
+                <div className={own.leaveInfo}>
+                  <div className={own.leaveUserName}>{user.name || 'Unknown'}</div>
+                  <div className={own.leaveMeta}>
+                    <span>{leave.date}</span>
+                    <span className={own.leaveDot}>·</span>
+                    <span>{LEAVE_TYPES[leave.type] || leave.type}</span>
+                    {leave.reason && (
+                      <>
+                        <span className={own.leaveDot}>·</span>
+                        <span className={own.leaveReason}>{leave.reason}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                {/* Status badge or actions */}
+                <div className={own.leaveActions}>
+                  {isPending ? (
+                    <>
+                      <button
+                        className={own.approveBtn}
+                        disabled={busy}
+                        onClick={() => decide(leave._id, 'approved')}
+                      >
+                        {busy ? '…' : '✓ Approve'}
+                      </button>
+                      <button
+                        className={own.denyBtn}
+                        disabled={busy}
+                        onClick={() => decide(leave._id, 'denied')}
+                      >
+                        {busy ? '…' : '✕ Deny'}
+                      </button>
+                    </>
+                  ) : (
+                    <span className={`${own.statusChip} ${own[`status_${leave.status}`]}`}>
+                      {leave.status}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function UserManagement() {
   const now = new Date()
   const [year, setYear]   = useState(now.getFullYear())
@@ -344,6 +480,9 @@ export default function UserManagement() {
   const [sortBy, setSortBy]   = useState('name') // name | hours | days | leaves
   const [tick, setTick]       = useState(0) // drives live timers
   const [showReport, setShowReport] = useState(false)
+  const [view, setView]       = useState('attendance') // 'attendance' | 'leaves'
+  const [pendingLeavesCount, setPendingLeavesCount] = useState(0)
+  const [sendingReport, setSendingReport] = useState(false)
 
   const isViewingToday = year === now.getFullYear() && month === now.getMonth() + 1
 
@@ -360,6 +499,13 @@ export default function UserManagement() {
   }, [])
 
   useEffect(() => { fetch(year, month) }, [fetch, year, month])
+
+  // Fetch pending leave count for badge on the tab
+  useEffect(() => {
+    api.get('/attendance/admin/leaves', { params: { status: 'pending' } })
+      .then(({ data }) => setPendingLeavesCount(data.length))
+      .catch(() => {})
+  }, [])
 
   // Tick every second to animate live timers when viewing current month
   useEffect(() => {
@@ -412,18 +558,61 @@ export default function UserManagement() {
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {/* Month picker */}
-          <div className={own.monthPicker}>
-            <button className={own.monthBtn} onClick={prevMonth} aria-label="Previous month">‹</button>
-            <span className={own.monthLabel}>{MONTHS[month - 1]} {year}</span>
-            <button className={own.monthBtn} onClick={nextMonth} disabled={isNextDisabled} aria-label="Next month">›</button>
+          {/* View tabs */}
+          <div className={own.viewTabs}>
+            <button
+              className={`${own.viewTab} ${view === 'attendance' ? own.viewTabActive : ''}`}
+              onClick={() => setView('attendance')}
+            >
+              <Icon name="clock" size={12} /> Attendance
+            </button>
+            <button
+              className={`${own.viewTab} ${view === 'leaves' ? own.viewTabActive : ''}`}
+              onClick={() => setView('leaves')}
+            >
+              <Icon name="calendar" size={12} /> Leave Requests
+              {pendingLeavesCount > 0 && (
+                <span className={own.tabBadge}>{pendingLeavesCount}</span>
+              )}
+            </button>
           </div>
 
-          {/* Report button */}
-          <button className={own.reportBtn} onClick={() => setShowReport(true)}>
-            <Icon name="doc" size={14} />
-            Behaviour Report
-          </button>
+          {view === 'attendance' && (
+            <>
+              {/* Month picker */}
+              <div className={own.monthPicker}>
+                <button className={own.monthBtn} onClick={prevMonth} aria-label="Previous month">‹</button>
+                <span className={own.monthLabel}>{MONTHS[month - 1]} {year}</span>
+                <button className={own.monthBtn} onClick={nextMonth} disabled={isNextDisabled} aria-label="Next month">›</button>
+              </div>
+
+              {/* Report button */}
+              <button className={own.reportBtn} onClick={() => setShowReport(true)}>
+                <Icon name="doc" size={14} />
+                Behaviour Report
+              </button>
+
+              {/* Send daily email report now */}
+              <button
+                className={own.sendReportBtn}
+                disabled={sendingReport}
+                onClick={async () => {
+                  setSendingReport(true)
+                  try {
+                    await api.post('/report/send')
+                    alert('✅ Daily report sent to your inbox!')
+                  } catch (err) {
+                    alert('❌ ' + (err.response?.data?.message || 'Failed to send report'))
+                  } finally {
+                    setSendingReport(false)
+                  }
+                }}
+              >
+                <Icon name="mail" size={14} />
+                {sendingReport ? 'Sending…' : 'Email Report'}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -437,6 +626,12 @@ export default function UserManagement() {
         />
       )}
 
+      {/* ── Leave Requests view ── */}
+      {view === 'leaves' && <LeaveRequestsPanel />}
+
+      {/* ── Attendance view ── */}
+      {view === 'attendance' && (
+        <>
       {/* ── Summary strip ── */}
       <div className={own.summaryStrip}>
         <div className={own.summaryItem}>
@@ -606,6 +801,8 @@ export default function UserManagement() {
             )
           })}
         </div>
+      )}
+        </>
       )}
     </div>
   )

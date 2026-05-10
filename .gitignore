@@ -52,3 +52,6 @@ Thumbs.db
 
 # CRM daily data logs (VPS security backups — never commit these)
 logs/
+
+# Process output
+nohup.out

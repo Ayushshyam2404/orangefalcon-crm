@@ -44,10 +44,9 @@ function HotelForm({ initial = {}, onSave, onCancel }) {
 }
 
 function RFPForm({ initial = {}, onSave, onCancel, hotels = [] }) {
-  const [form, setForm] = useState({
-    client: '', hotel: '', checkin: '', checkout: '', price: '', status: 'Pending', notes: '', priority: false, numRooms: null,
-    ...initial,
-    hotel: initial.hotel?._id || initial.hotel || '',
+  const [form, setForm] = useState(() => {
+    const base = { client: '', hotel: '', checkin: '', checkout: '', price: '', status: 'Pending', notes: '', priority: false, numRooms: null }
+    return { ...base, ...initial, hotel: initial.hotel?._id || initial.hotel || '' }
   })
   const [saving, setSaving] = useState(false)
 

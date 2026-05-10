@@ -50,6 +50,7 @@ export function Sidebar({ alertCount, isOpen, onClose, onOpenAttendance }) {
     { to: '/reputation', label: 'Dashboard', icon: 'grid' },
     { to: '/hotel-scores', label: 'Hotel Scores', icon: 'star' },
     { to: '/reputation-tasks', label: 'Tasks', icon: 'check' },
+    { to: '/reputation-calls', label: 'Calls', icon: 'phone' },
   ]
 
   const adminItems = [

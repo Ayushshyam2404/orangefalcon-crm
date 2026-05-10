@@ -41,6 +41,19 @@ const Settings = () => {
   const [companySaving, setCompanySaving] = useState(false);
   const [companySaved, setCompanySaved] = useState(false);
 
+  // Report recipients state
+  const [reportRecipients, setReportRecipients] = useState([]);
+  const [newRecipient, setNewRecipient] = useState('');
+  const [recipientSaving, setRecipientSaving] = useState(false);
+  const [recipientSaved, setRecipientSaved] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
+
+  // Backup & Restore state
+  const [exporting, setExporting] = useState(false);
+  const [restoreFile, setRestoreFile] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreResult, setRestoreResult] = useState(null); // { ok, message, results, warnings }
+
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
@@ -63,6 +76,7 @@ const Settings = () => {
           expectedDaysPerWeek: cs.expectedDaysPerWeek || 5,
         });
         setLogoPreview(cs.logo || '');
+        setReportRecipients(cs.reportRecipients || []);
       } catch (err) {
         console.error('Error fetching data:', err);
       } finally {
@@ -99,6 +113,101 @@ const Settings = () => {
       alert('Failed to save company settings');
     } finally {
       setCompanySaving(false);
+    }
+  };
+
+  const handleAddRecipient = () => {
+    const email = newRecipient.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    if (reportRecipients.includes(email)) {
+      alert('This email is already in the list');
+      return;
+    }
+    setReportRecipients(r => [...r, email]);
+    setNewRecipient('');
+  };
+
+  const handleRemoveRecipient = (email) => {
+    setReportRecipients(r => r.filter(e => e !== email));
+  };
+
+  const handleSaveRecipients = async () => {
+    setRecipientSaving(true);
+    try {
+      await api.put('/company-settings', { reportRecipients });
+      setRecipientSaved(true);
+      setTimeout(() => setRecipientSaved(false), 3000);
+    } catch (err) {
+      console.error('Error saving recipients:', err);
+      alert('Failed to save recipients');
+    } finally {
+      setRecipientSaving(false);
+    }
+  };
+
+  const handleSendReport = async () => {
+    if (!window.confirm('Send the full backup report now?')) return;
+    setSendingReport(true);
+    try {
+      await api.post('/report/send');
+      alert('Report sent successfully!');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to send report');
+    } finally {
+      setSendingReport(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await api.get('/backup/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/json' }));
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `crm-backup-${date}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!restoreFile) return;
+    const confirmed = window.confirm(
+      '⚠️ DANGER: This will ERASE all current data and replace it with the contents of this backup file.\n\nThis cannot be undone. Are you absolutely sure?'
+    );
+    if (!confirmed) return;
+    const doubleConfirmed = window.confirm(
+      'Final confirmation — all existing data will be permanently deleted and replaced. Proceed?'
+    );
+    if (!doubleConfirmed) return;
+
+    setRestoring(true);
+    setRestoreResult(null);
+    try {
+      const text = await restoreFile.text();
+      const parsed = JSON.parse(text);
+      const res = await api.post('/backup/restore', parsed, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 120000,
+      });
+      setRestoreResult({ ok: true, message: res.data.message, results: res.data.results, warnings: res.data.warnings });
+      setRestoreFile(null);
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Restore failed';
+      setRestoreResult({ ok: false, message: msg });
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -243,6 +352,18 @@ const Settings = () => {
           onClick={() => setActiveTab('company')}
         >
           Company
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'report' ? styles.active : ''}`}
+          onClick={() => setActiveTab('report')}
+        >
+          Report Recipients
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === 'backup' ? styles.active : ''}`}
+          onClick={() => setActiveTab('backup')}
+        >
+          Backup &amp; Restore
         </button>
       </div>
 
@@ -549,6 +670,190 @@ const Settings = () => {
               {companySaved && <span className={styles.savedMsg}>✓ Saved successfully</span>}
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Report Recipients Tab */}
+      {activeTab === 'report' && (
+        <div className={styles.content}>
+          <div className={styles.sectionHeader}>
+            <h3>Report Recipients</h3>
+          </div>
+          <p className={styles.companySectionHint} style={{ marginBottom: '20px' }}>
+            The nightly full backup report is emailed to everyone on this list at 11 PM ET. You can also trigger it manually below.
+          </p>
+
+          {/* Recipient list */}
+          <div className={styles.recipientList}>
+            {reportRecipients.length === 0 && (
+              <div className={styles.recipientEmpty}>
+                No recipients configured. Add at least one email below.
+              </div>
+            )}
+            {reportRecipients.map(email => (
+              <div key={email} className={styles.recipientRow}>
+                <span className={styles.recipientEmail}>{email}</span>
+                <button
+                  type="button"
+                  className={styles.recipientRemove}
+                  onClick={() => handleRemoveRecipient(email)}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add new recipient */}
+          <div className={styles.recipientAddRow}>
+            <input
+              type="email"
+              className={styles.companyInput}
+              placeholder="name@example.com"
+              value={newRecipient}
+              onChange={e => setNewRecipient(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddRecipient())}
+            />
+            <button type="button" className={styles.addBtn} onClick={handleAddRecipient}>
+              + Add
+            </button>
+          </div>
+
+          <div className={styles.companySaveRow} style={{ marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={styles.submitBtn}
+              onClick={handleSaveRecipients}
+              disabled={recipientSaving}
+            >
+              {recipientSaving ? 'Saving…' : 'Save Recipients'}
+            </button>
+            {recipientSaved && <span className={styles.savedMsg}>✓ Saved</span>}
+            <button
+              type="button"
+              className={styles.sendReportBtnSettings}
+              onClick={handleSendReport}
+              disabled={sendingReport}
+            >
+              {sendingReport ? 'Sending…' : 'Send Report Now'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Backup & Restore Tab */}
+      {activeTab === 'backup' && (
+        <div className={styles.content}>
+          {/* ── Export ── */}
+          <div className={styles.backupSection}>
+            <div className={styles.backupSectionHeader}>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, color: 'var(--accent)' }}>
+                <path d="M10 2v10M6 8l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 14v2a2 2 0 002 2h10a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+              <h3>Download Backup</h3>
+            </div>
+            <p className={styles.backupHint}>
+              Exports every collection — users, hotels, RFPs, calls, leads, tasks, attendance logs, and more — into a single human-readable <code>.json</code> file.
+              Keep this file somewhere safe. You can use it to restore the entire database at any time.
+            </p>
+            <button
+              type="button"
+              className={styles.exportBtn}
+              onClick={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? 'Preparing download…' : 'Download Backup (.json)'}
+            </button>
+          </div>
+
+          <div className={styles.backupDivider} />
+
+          {/* ── Restore ── */}
+          <div className={styles.backupSection}>
+            <div className={styles.backupSectionHeader}>
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, color: '#ef4444' }}>
+                <path d="M3 10a7 7 0 107-7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M3 4v6h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <h3 style={{ color: '#ef4444' }}>Restore from Backup</h3>
+            </div>
+            <div className={styles.restoreWarning}>
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0, marginTop: 1 }}>
+                <path d="M10 2L2 17h16L10 2z" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
+                <path d="M10 8v4M10 13v1" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <span>
+                <strong>Danger zone.</strong> Uploading a backup will <strong>permanently erase all current data</strong> and replace it with the backup contents.
+                This cannot be undone. Only proceed if you are recovering from data loss.
+              </span>
+            </div>
+
+            {/* File drop zone */}
+            <label className={styles.dropZone}>
+              <input
+                type="file"
+                accept=".json,application/json"
+                style={{ display: 'none' }}
+                onChange={e => { setRestoreFile(e.target.files[0] || null); setRestoreResult(null); }}
+              />
+              {restoreFile ? (
+                <div className={styles.dropZoneSelected}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M4 4a2 2 0 012-2h6l4 4v10a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke="var(--accent)" strokeWidth="1.5" fill="none"/>
+                    <path d="M12 2v4h4" stroke="var(--accent)" strokeWidth="1.5" fill="none"/>
+                  </svg>
+                  <span>{restoreFile.name}</span>
+                  <button
+                    type="button"
+                    className={styles.dropZoneClear}
+                    onClick={e => { e.preventDefault(); setRestoreFile(null); setRestoreResult(null); }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.dropZoneEmpty}>
+                  <svg width="28" height="28" viewBox="0 0 20 20" fill="none" style={{ opacity: 0.4 }}>
+                    <path d="M4 4a2 2 0 012-2h6l4 4v10a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                    <path d="M12 2v4h4M7 10h6M7 13h4" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                  </svg>
+                  <span>Click to select backup <code>.json</code> file</span>
+                </div>
+              )}
+            </label>
+
+            <button
+              type="button"
+              className={styles.resetBtn}
+              onClick={handleRestore}
+              disabled={!restoreFile || restoring}
+            >
+              {restoring ? 'Restoring…' : 'RESET — Restore from Backup'}
+            </button>
+
+            {/* Result feedback */}
+            {restoreResult && (
+              <div className={restoreResult.ok ? styles.restoreSuccess : styles.restoreError}>
+                <strong>{restoreResult.ok ? '✓ ' : '✕ '}{restoreResult.message}</strong>
+                {restoreResult.ok && restoreResult.results && (
+                  <div className={styles.restoreResults}>
+                    {Object.entries(restoreResult.results).map(([col, msg]) => (
+                      <div key={col} className={styles.restoreResultRow}>
+                        <span className={styles.restoreCol}>{col}</span>
+                        <span>{msg}</span>
+                      </div>
+                    ))}
+                    {restoreResult.warnings?.length > 0 && (
+                      <div className={styles.restoreResultRow} style={{ marginTop: 8, color: '#f59e0b' }}>
+                        {restoreResult.warnings.map((w, i) => <div key={i}>{w}</div>)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

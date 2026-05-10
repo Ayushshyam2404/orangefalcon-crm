@@ -2,6 +2,7 @@
    LOGIN PAGE
    ═══════════════════════════════════════════════════ */
 
+/* ── Theme: dark (default) ────────────────────────── */
 .page {
   min-height: 100vh;
   display: flex;
@@ -12,6 +13,125 @@
   position: relative;
   overflow: hidden;
   padding: 24px;
+  transition: background 0.3s ease;
+}
+
+/* ── Theme: light ─────────────────────────────────── */
+.page.light {
+  background: #f4f4f8;
+}
+
+.page.light .grid {
+  background-image:
+    linear-gradient(rgba(255, 107, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 107, 0, 0.06) 1px, transparent 1px);
+}
+
+.page.light .card {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 1px rgba(255, 107, 0, 0.1),
+    0 24px 80px rgba(0, 0, 0, 0.12),
+    0 4px 24px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.page.light .logoName {
+  color: #1a1a2e;
+}
+
+.page.light .title {
+  color: #1a1a2e;
+}
+
+.page.light .subtitle {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.page.light .label {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.page.light .inputWrap input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1a1a2e;
+}
+
+.page.light .inputWrap input::placeholder {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.page.light .inputIcon {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.page.light .inputWrap:focus-within .inputIcon {
+  color: rgba(255, 107, 0, 0.8);
+}
+
+.page.light .inputWrap input:focus {
+  border-color: rgba(255, 107, 0, 0.5);
+  background: rgba(255, 107, 0, 0.04);
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.page.light .divider {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+}
+
+.page.light .footer {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+.page.light .orb1 {
+  background: radial-gradient(circle, rgba(255, 107, 0, 0.1) 0%, transparent 65%);
+}
+.page.light .orb2 {
+  background: radial-gradient(circle, rgba(255, 140, 56, 0.08) 0%, transparent 65%);
+}
+.page.light .orb3 {
+  background: radial-gradient(circle, rgba(255, 60, 0, 0.06) 0%, transparent 65%);
+}
+
+/* ── Theme toggle button ──────────────────────────── */
+.themeToggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+  backdrop-filter: blur(8px);
+}
+
+.themeToggle:hover {
+  background: rgba(255, 107, 0, 0.15);
+  border-color: rgba(255, 107, 0, 0.4);
+  color: #ff6b00;
+  transform: scale(1.05);
+}
+
+.page.light .themeToggle {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.page.light .themeToggle:hover {
+  background: rgba(255, 107, 0, 0.1);
+  border-color: rgba(255, 107, 0, 0.4);
+  color: #ff6b00;
 }
 
 /* ── Grid overlay ─────────────────────────────────── */

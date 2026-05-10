@@ -22,6 +22,7 @@ import UserManagement from './pages/UserManagement'
 import HotelScores from './pages/HotelScores'
 import ReputationDashboard from './pages/ReputationDashboard'
 import ReputationTasker from './pages/ReputationTasker'
+import ReputationCalls from './pages/ReputationCalls'
 import api from './utils/api'
 
 // ── Force change password modal ───────────────────────────────────────────────
@@ -278,6 +279,7 @@ export default function App() {
             <Route path="/hotel-scores" element={<HotelScores />} />
             <Route path="/reputation" element={<ReputationDashboard />} />
             <Route path="/reputation-tasks" element={<ReputationTasker />} />
+            <Route path="/reputation-calls" element={<ReputationCalls />} />
 
             <Route element={<AdminRoute />}>
               <Route path="/settings" element={<Settings />} />

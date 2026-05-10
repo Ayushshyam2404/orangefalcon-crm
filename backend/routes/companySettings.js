@@ -32,13 +32,14 @@ router.get('/', async (req, res) => {
 // PUT /api/company-settings — admin only
 router.put('/', adminOnly, async (req, res) => {
   try {
-    const { companyName, logo, expectedClockIn, expectedHoursPerDay, expectedDaysPerWeek } = req.body;
+    const { companyName, logo, expectedClockIn, expectedHoursPerDay, expectedDaysPerWeek, reportRecipients } = req.body;
     const update = {};
     if (companyName !== undefined)         update.companyName         = companyName;
     if (logo !== undefined)                update.logo                = logo;
     if (expectedClockIn !== undefined)     update.expectedClockIn     = expectedClockIn;
     if (expectedHoursPerDay !== undefined) update.expectedHoursPerDay = expectedHoursPerDay;
     if (expectedDaysPerWeek !== undefined) update.expectedDaysPerWeek = expectedDaysPerWeek;
+    if (Array.isArray(reportRecipients))   update.reportRecipients    = reportRecipients;
 
     const settings = await CompanySettings.findOneAndUpdate(
       { key: 'singleton' },

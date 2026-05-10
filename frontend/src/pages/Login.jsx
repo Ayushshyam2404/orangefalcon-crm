@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { Icon } from '../components/Icon'
 import styles from './Login.module.css'
 
 export default function Login() {
@@ -14,6 +15,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [companyName, setCompanyName] = useState('Orange Falcon')
   const [logo, setLogo] = useState('')
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('loginTheme')
+    return saved ? saved === 'dark' : true
+  })
   const intervalRef = useRef(null)
 
   // Fetch public company branding on mount
@@ -72,17 +77,35 @@ export default function Login() {
     }
   }
 
+  const toggleTheme = () => {
+    setIsDark(prev => {
+      const next = !prev
+      localStorage.setItem('loginTheme', next ? 'dark' : 'light')
+      return next
+    })
+  }
+
   const mins = Math.floor(secondsLeft / 60)
   const secs = secondsLeft % 60
 
   return (
     <>
-      <div className={styles.page}>
+      <div className={`${styles.page}${!isDark ? ` ${styles.light}` : ''}`}>
         {/* Ambient orbs */}
         <div className={styles.orb1} />
         <div className={styles.orb2} />
         <div className={styles.orb3} />
         <div className={styles.grid} />
+
+        {/* Theme toggle */}
+        <button
+          className={styles.themeToggle}
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <Icon name={isDark ? 'sun' : 'moon'} size={16} />
+        </button>
 
         <div className={styles.card}>
           {/* Logo area */}
@@ -147,7 +170,10 @@ export default function Login() {
               <div className={isLocked ? styles.errorLocked : styles.error}>
                 {isLocked ? (
                   <>
-                    <span>🔒 {error.split('.')[0]}.</span>
+                    <span style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      {error.split('.')[0]}.
+                    </span>
                     {secondsLeft > 0 && (
                       <span className={styles.lockCountdown}>
                         Unlocks in {mins > 0 ? `${mins}m ` : ''}{String(secs).padStart(2, '0')}s
@@ -162,7 +188,7 @@ export default function Login() {
               {loading
                 ? <span className={styles.btnSpinner}><span /><span /><span /></span>
                 : isLocked
-                  ? '🔒 Account Locked'
+                  ? <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Account Locked</>
                   : 'Sign In'}
             </button>
           </form>

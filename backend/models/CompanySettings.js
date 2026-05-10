@@ -8,6 +8,7 @@ const companySettingsSchema = new mongoose.Schema(
     expectedClockIn:     { type: String, default: '09:00' }, // HH:MM
     expectedHoursPerDay: { type: Number, default: 8, min: 1, max: 24 },
     expectedDaysPerWeek: { type: Number, default: 5, min: 1, max: 7 },
+    reportRecipients: { type: [String], default: [] },
   },
   { timestamps: true }
 );

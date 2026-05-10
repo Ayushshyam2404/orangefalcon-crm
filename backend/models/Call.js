@@ -10,6 +10,7 @@ const callSchema = new mongoose.Schema(
       default: 'Connected',
     },
     notes: { type: String, default: '' },
+    category: { type: String, enum: ['sales', 'reputation'], default: 'sales' },
     loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
