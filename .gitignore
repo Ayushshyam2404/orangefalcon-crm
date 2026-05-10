@@ -49,3 +49,6 @@ Thumbs.db
 
 # Misc
 .logs/
+
+# CRM daily data logs (VPS security backups — never commit these)
+logs/
