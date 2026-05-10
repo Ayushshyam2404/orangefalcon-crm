@@ -3,12 +3,14 @@
 const fs   = require('fs');
 const path = require('path');
 
-// Configurable via env; defaults to <repo-root>/logs/crm-data/
-const LOG_DIR = process.env.DATA_LOG_DIR
-  || path.join(__dirname, '../../logs/crm-data');
-
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+// Read at call-time so the env var can be overridden in tests
+function getLogDir() {
+  return process.env.DATA_LOG_DIR
+    || path.join(__dirname, '../../logs/crm-data');
 }
 
 /**
@@ -24,9 +26,10 @@ function ensureDir(dir) {
  * @param {object} payload       - all CRM data fetched for that day
  */
 function logDailyData(reportDayStr, payload) {
+  const logDir = getLogDir();
   try {
-    ensureDir(LOG_DIR);
-    const filePath = path.join(LOG_DIR, `${reportDayStr}.json`);
+    ensureDir(logDir);
+    const filePath = path.join(logDir, `${reportDayStr}.json`);
     const entry = {
       _meta: {
         reportDay:       reportDayStr,
