@@ -267,10 +267,11 @@ fi
 section "5. Backend API Health"
 
 if command -v curl &>/dev/null; then
-  HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 5 "$BACKEND_HEALTH_URL" 2>/dev/null || echo "000")
+  # Use || true so curl's own "000" output is not doubled by the fallback echo
+  HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 5 "$BACKEND_HEALTH_URL" 2>/dev/null) || true
   if [ "$HTTP_CODE" = "200" ]; then
     pass "Backend health endpoint returned HTTP 200 (${BACKEND_HEALTH_URL})"
-  elif [ "$HTTP_CODE" = "000" ]; then
+  elif [ -z "$HTTP_CODE" ] || [ "$HTTP_CODE" = "000" ]; then
     warn "Backend is not running on port ${BACKEND_PORT} -- this is expected if running maintenance before startup"
   else
     warn "Backend health endpoint returned HTTP ${HTTP_CODE} at ${BACKEND_HEALTH_URL}"
@@ -431,11 +432,15 @@ if [ -d "$APP_LOG_DIR" ]; then
         pass "${logfile}: ${LF_SIZE} (${LF_LINES} lines)"
       fi
 
-      # Scan for recent ERROR or FATAL entries
-      ERR_COUNT=$(tail -200 "$LF" 2>/dev/null | grep -ciE "error|fatal|uncaught|crash" || true)
-      if [ "${ERR_COUNT:-0}" -gt 0 ]; then
-        warn "${logfile}: ${ERR_COUNT} error/fatal line(s) in last 200 lines"
-        tail -5 "$LF" 2>/dev/null | while IFS= read -r line; do
+      # Scan for genuine error/fatal entries in the last 200 lines.
+      # MongoDB structured logs use severity "s":"E" (Error) or "s":"F" (Fatal).
+      # For plain-text logs, match " ERROR " / " FATAL " with surrounding spaces to
+      # avoid false positives from field names like "shutDownAbortExpiredTransactions".
+      MATCHING_LINES=$(tail -200 "$LF" 2>/dev/null | grep -iE '"s":"[EF]"|uncaught|crash| ERROR | FATAL ' || true)
+      ERR_COUNT=$(echo "$MATCHING_LINES" | grep -c . 2>/dev/null || true)
+      if [ "${ERR_COUNT:-0}" -gt 0 ] && [ -n "$MATCHING_LINES" ]; then
+        warn "${logfile}: ${ERR_COUNT} genuine error/fatal line(s) in last 200 lines"
+        echo "$MATCHING_LINES" | tail -3 | while IFS= read -r line; do
           info "    ${line}"
         done
       fi
