@@ -233,6 +233,7 @@ export default function HotelScores() {
   const [loading, setLoading] = useState(true)
   const [hotelFilter, setHotelFilter] = useState('all')
   const [modal, setModal] = useState(null)
+  const [saveError, setSaveError] = useState('')
   const [view, setView] = useState('table') // 'table' | 'month' | 'year'
 
   const today = new Date()
@@ -253,13 +254,19 @@ export default function HotelScores() {
   useEffect(() => { fetchScores() }, [hotelFilter])
 
   const handleSave = async (form) => {
-    if (modal?._id) {
-      await api.put(`/hotel-scores/${modal._id}`, form)
-    } else {
-      await api.post('/hotel-scores', form)
+    setSaveError('')
+    const payload = { ...form, score: parseFloat(form.score) }
+    try {
+      if (modal?._id) {
+        await api.put(`/hotel-scores/${modal._id}`, payload)
+      } else {
+        await api.post('/hotel-scores', payload)
+      }
+      setModal(null)
+      fetchScores()
+    } catch (err) {
+      setSaveError(err.response?.data?.message || 'Failed to save score')
     }
-    setModal(null)
-    fetchScores()
   }
 
   const handleDelete = async (id) => {
@@ -424,13 +431,16 @@ export default function HotelScores() {
       {modal && (
         <Modal
           title={modal === 'new' ? 'Add Hotel Score' : 'Edit Hotel Score'}
-          onClose={() => setModal(null)}
+          onClose={() => { setModal(null); setSaveError('') }}
         >
+          {saveError && (
+            <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{saveError}</p>
+          )}
           <ScoreForm
             initial={modal === 'new' ? {} : modal}
             hotels={hotels}
             onSave={handleSave}
-            onCancel={() => setModal(null)}
+            onCancel={() => { setModal(null); setSaveError('') }}
           />
         </Modal>
       )}
