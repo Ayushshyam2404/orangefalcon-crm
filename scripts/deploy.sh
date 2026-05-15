@@ -22,7 +22,7 @@ success() { echo -e "${GREEN}[DEPLOY]${RESET} $*"; }
 warn()    { echo -e "${YELLOW}[DEPLOY]${RESET} $*"; }
 err()     { echo -e "${RED}[DEPLOY]${RESET} $*"; exit 1; }
 
-APP_DIR="/var/www/orange-falcon-crm"
+APP_DIR="/var/www/orangefalcon-crm"
 BACKEND="$APP_DIR/backend"
 FRONTEND="$APP_DIR/frontend"
 PM2_APP_NAME="orange-falcon-crm"
