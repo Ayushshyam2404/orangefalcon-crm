@@ -44,7 +44,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
     res.status(201).json(populated);
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(400).json({ message: 'Hotel name already exists' });
+      return res.status(400).json({ message: 'A hotel with this name already exists in this category' });
     }
     res.status(500).json({ message: err.message });
   }

@@ -236,7 +236,7 @@ const Settings = () => {
       setEditingId(null);
     } catch (err) {
       console.error('Error saving hotel:', err);
-      alert('Failed to save hotel');
+      alert(err.response?.data?.message || 'Failed to save hotel');
     }
   };
 
