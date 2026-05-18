@@ -158,6 +158,14 @@ export function Icon({ name, size = 16, color = 'currentColor', style = {} }) {
     moon: (
       <path d="M17 12A7 7 0 119 4a5.5 5.5 0 008 8z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     ),
+    barChart: (
+      <>
+        <rect x="2" y="12" width="3" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <rect x="7" y="7" width="3" height="11" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <rect x="12" y="4" width="3" height="14" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        <rect x="17" y="9" width="3" height="9" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      </>
+    ),
   }
 
   return (

@@ -39,6 +39,7 @@ export function Sidebar({ alertCount, isOpen, onClose, onOpenAttendance }) {
     { to: '/rfps-consideration', label: 'RFP Consideration', icon: 'star' },
     { to: '/calls', label: 'Calls', icon: 'phone' },
     { to: '/groups', label: 'Groups', icon: 'users' },
+    { to: '/revenue-analytics', label: 'Revenue Analytics', icon: 'barChart' },
     { to: '/tasks', label: 'Tasks', icon: 'check' },
     { to: '/leads', label: 'Inbound Leads', icon: 'funnel' },
     { to: '/corporate', label: 'Corporate Profiles', icon: 'building' },

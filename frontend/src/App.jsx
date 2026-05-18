@@ -20,6 +20,7 @@ import Calendar from './pages/Calendar'
 import Announcements from './pages/Announcements'
 import UserManagement from './pages/UserManagement'
 import HotelScores from './pages/HotelScores'
+import RevenueAnalytics from './pages/RevenueAnalytics'
 import ReputationDashboard from './pages/ReputationDashboard'
 import ReputationTasker from './pages/ReputationTasker'
 import ReputationCalls from './pages/ReputationCalls'
@@ -270,6 +271,7 @@ export default function App() {
             <Route path="/rfps-consideration" element={<RFPsInConsideration />} />
             <Route path="/calls" element={<Calls />} />
             <Route path="/groups" element={<Groups />} />
+            <Route path="/revenue-analytics" element={<RevenueAnalytics />} />
             <Route path="/tasks" element={<Tasker />} />
             <Route path="/leads" element={<InboundLeads />} />
             <Route path="/corporate" element={<CorporateProfiles />} />

@@ -5,25 +5,25 @@ const { logDailyData } = require('./dataLogger');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * At 5 AM IST this report runs.
- * Returns the PREVIOUS day in IST as 'YYYY-MM-DD' — the day being reported on.
- */
+/** Returns today's date in America/New_York (EST/EDT) as 'YYYY-MM-DD'. */
 function getReportDay() {
-  const istDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-  istDate.setDate(istDate.getDate() - 1);
-  const yyyy = istDate.getFullYear();
-  const mm   = String(istDate.getMonth() + 1).padStart(2, '0');
-  const dd   = String(istDate.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
 }
 
-/** Returns UTC Date objects for the start and end of a given IST day. */
+/** Returns UTC Date objects for the start and end of a given America/New_York day. */
 function getDayRange(dateStr) {
-  return {
-    start: new Date(`${dateStr}T00:00:00.000+05:30`),
-    end:   new Date(`${dateStr}T23:59:59.999+05:30`),
-  };
+  // Determine NY UTC offset dynamically (EDT = UTC-4, EST = UTC-5)
+  const testNoon = new Date(`${dateStr}T12:00:00Z`);
+  const nyHour = parseInt(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', hour: '2-digit', hour12: false,
+    }).formatToParts(testNoon).find(p => p.type === 'hour').value,
+    10
+  );
+  const utcOffsetH = nyHour - 12; // e.g. 8-12 = -4 for EDT, 7-12 = -5 for EST
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const startMs = Date.UTC(y, m - 1, d, -utcOffsetH, 0, 0, 0);
+  return { start: new Date(startMs), end: new Date(startMs + 86400000 - 1) };
 }
 
 function fmtSecs(s) {
@@ -41,6 +41,7 @@ function fmtDateTime(d) {
   return new Date(d).toLocaleString('en-US', {
     month: 'short', day: 'numeric', year: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: true,
+    timeZone: 'America/New_York',
   });
 }
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'; }
@@ -107,29 +108,31 @@ const wrap = (content) => `
   body{margin:0;padding:0;background:${C.bg};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
   table{border-collapse:collapse;}
   img{border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
-  .email-wrapper{background:${C.bg};padding:24px 12px;}
-  .email-main{width:700px;max-width:100%;}
+  .email-wrapper{background:${C.bg};padding:20px 8px;}
+  .email-main{width:620px;max-width:100%;}
   .kpi-table{width:100%;}
-  .kpi-cell{padding:0 5px;width:16.66%;}
-  .data-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .kpi-cell{padding:0 4px;width:16.66%;}
+  .data-scroll{width:100%;}
+  .hc{display:table-cell;}
   .hide-sm{display:table-cell;}
-  @media screen and (max-width:640px){
-    .email-wrapper{padding:12px 4px!important;}
-    .email-main{width:100%!important;}
+  @media screen and (max-width:620px){
+    .email-wrapper{padding:10px 4px!important;}
+    .email-main{width:100%!important;max-width:100%!important;}
     .kpi-cell{width:33.33%!important;display:inline-block!important;padding:3px!important;vertical-align:top!important;}
     .kpi-table{display:block!important;}
-    .data-scroll{display:block!important;overflow-x:auto!important;}
+    .hc{display:none!important;}
     .hide-sm{display:none!important;}
     .hero-stat{display:none!important;}
-    h1.report-title{font-size:20px!important;}
-    .section-title{font-size:14px!important;}
+    h1.report-title{font-size:18px!important;}
+    .section-title{font-size:13px!important;}
+    td,th{word-break:break-word;overflow-wrap:break-word;}
   }
 </style>
 </head>
 <body>
 <table width="100%" cellpadding="0" cellspacing="0" class="email-wrapper">
 <tr><td align="center">
-<table cellpadding="0" cellspacing="0" class="email-main" style="max-width:700px;width:100%;">
+<table cellpadding="0" cellspacing="0" class="email-main" style="max-width:620px;width:100%;">
 ${content}
 </table>
 </td></tr></table>
@@ -160,15 +163,20 @@ const sectionHead = (iconSvg, title, color, count) => `
 </td></tr>`;
 
 const th = (cols) =>
-  `<tr style="background:${C.surface2};">${cols.map(c =>
-    `<th style="padding:9px 11px;text-align:left;font-size:9px;font-weight:700;color:${C.text3};text-transform:uppercase;letter-spacing:0.8px;border-bottom:1px solid ${C.border};white-space:nowrap;">${c}</th>`
-  ).join('')}</tr>`;
+  `<tr style="background:${C.surface2};">${cols.map(c => {
+    const text = typeof c === 'object' ? c.v : c;
+    const cls  = typeof c === 'object' && c.c ? ` class="${c.c}"` : '';
+    return `<th${cls} style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;color:${C.text3};text-transform:uppercase;letter-spacing:0.7px;border-bottom:1px solid ${C.border};white-space:nowrap;">${text}</th>`;
+  }).join('')}</tr>`;
 
 const tr = (cells, i) => {
   const bg = i % 2 === 0 ? C.surface : C.surface2;
-  return `<tr style="background:${bg};">${cells.map(c =>
-    `<td style="padding:9px 11px;font-size:12px;color:${C.text};border-bottom:1px solid ${C.border};vertical-align:middle;">${c ?? '—'}</td>`
-  ).join('')}</tr>`;
+  return `<tr style="background:${bg};">${cells.map(c => {
+    const isObj  = c !== null && typeof c === 'object' && !Array.isArray(c) && 'v' in c;
+    const content = isObj ? c.v : c;
+    const cls    = isObj && c.c ? ` class="${c.c}"` : '';
+    return `<td${cls} style="padding:8px 10px;font-size:12px;color:${C.text};border-bottom:1px solid ${C.border};vertical-align:top;">${content ?? '—'}</td>`;
+  }).join('')}</tr>`;
 };
 
 const emptyRow = (colspan, msg) =>
@@ -177,7 +185,7 @@ const emptyRow = (colspan, msg) =>
 const tableWrap = (rows) =>
   `<tr><td style="padding:0 0 6px;">
     <div class="data-scroll">
-      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;min-width:480px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;width:100%;">
         ${rows}
       </table>
     </div>
@@ -231,16 +239,16 @@ async function generateAndSend() {
   const Alert            = require('../models/Alert');
   const CompanySettings  = require('../models/CompanySettings');
 
-  // Report covers the PREVIOUS day in IST (runs at 5 AM IST)
+  // Report covers today's date in America/New_York (EST/EDT)
   const reportDay = getReportDay();
   const { start: dayStart, end: dayEnd } = getDayRange(reportDay);
 
-  const reportDate = new Date(`${reportDay}T12:00:00+05:30`).toLocaleDateString('en-US', {
+  const reportDate = new Date(`${reportDay}T16:00:00Z`).toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    timeZone: 'Asia/Kolkata',
+    timeZone: 'America/New_York',
   });
-  const nowTime = new Date().toLocaleTimeString('en-IN', {
-    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata',
+  const nowTime = new Date().toLocaleTimeString('en-US', {
+    hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/New_York',
   });
 
   // Fetch today's data + reference data in parallel
@@ -323,7 +331,7 @@ async function generateAndSend() {
   // ── VPS Security Log ─────────────────────────────────────────────────────────
   // Write a full snapshot to disk before sending email, so we never lose data.
   logDailyData(reportDay, {
-    reportMeta:        { reportDay, generatedAt_IST: nowTime, recipients: allRecipients },
+    reportMeta:        { reportDay, generatedAt_EST: nowTime, recipients: allRecipients },
     attendance:        attendanceLogs,
     leaves:            todayLeaves,
     salesCalls,        repCalls,
@@ -338,6 +346,38 @@ async function generateAndSend() {
     todayEvents,       alerts,
     dbTotals: { users: users.length, hotels: hotels.length, corporates: totalCorpCount, groups: totalGroupCount },
   });
+
+  // ─── Current-month Revenue Analytics ─────────────────────────────────────────
+  const nyNow      = new Date();
+  const revYear    = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric' }).format(nyNow), 10);
+  const revMonth0  = parseInt(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'numeric' }).format(nyNow), 10) - 1;
+  const revMonthName = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', month: 'long' }).format(nyNow);
+
+  const revAnalytics = await Group.aggregate([
+    { $match: { checkIn: { $gte: new Date(revYear, revMonth0, 1), $lt: new Date(revYear, revMonth0 + 1, 1) } } },
+    {
+      $group: {
+        _id: '$hotel',
+        totalGroups:    { $sum: 1 },
+        totalRoomNights:{ $sum: { $ifNull: ['$numRoomNights', 0] } },
+        totalRevenue:   { $sum: { $multiply: [{ $ifNull: ['$rate', 0] }, { $ifNull: ['$numRoomNights', 0] }] } },
+        avgRate:        { $avg: '$rate' },
+      },
+    },
+    { $lookup: { from: 'hotels', localField: '_id', foreignField: '_id', as: 'h' } },
+    { $unwind: { path: '$h', preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        hotelName:       { $ifNull: ['$h.name', 'Unknown'] },
+        hotelCity:       { $ifNull: ['$h.city', ''] },
+        totalGroups:     1,
+        totalRoomNights: 1,
+        totalRevenue:    1,
+        avgRate:         { $round: ['$avgRate', 2] },
+      },
+    },
+    { $sort: { totalRevenue: -1 } },
+  ]);
 
   // ─── Build HTML ──────────────────────────────────────────────────────────────
   let body = '';
@@ -358,7 +398,7 @@ async function generateAndSend() {
             }
             <div style="font-size:10px;font-weight:700;color:${C.accent};text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">${esc(companyName)} &nbsp;&bull;&nbsp; Daily Report</div>
             <h1 class="report-title" style="margin:0 0 6px;font-size:24px;font-weight:800;color:${C.text};letter-spacing:-0.5px;">Daily Activity Report</h1>
-            <div style="font-size:13px;color:${C.text2};">${reportDate} &nbsp;&middot;&nbsp; Generated at ${nowTime} IST</div>
+            <div style="font-size:13px;color:${C.text2};">${reportDate} &nbsp;&middot;&nbsp; Generated at ${nowTime} EST</div>
             <div style="margin-top:8px;font-size:11px;color:${C.text3};">
               ${presentCount} present &bull; ${totalCalls} calls logged &bull; ${groups.length} groups added &bull; ${rfps.length} RFPs added &bull; ${leads.length} leads added
             </div>
@@ -411,25 +451,22 @@ async function generateAndSend() {
   if (attendanceLogs.length === 0 && todayLeaves.length === 0) {
     body += noneToday('No attendance recorded for this day.');
   } else {
-    let attRows = th(['Employee', 'Title', 'Role', 'Clock In', 'Clock Out', 'Hours', 'Break']);
+    let attRows = th(['Employee', 'Clock In / Out', 'Hours', {v:'Break',c:'hc'}]);
     attendanceLogs.forEach((l, i) => {
+      const isAdmin = l.user?.role === 'admin';
       attRows += tr([
-        `<strong>${esc(l.user?.name)}</strong>`,
-        val(l.user?.title),
-        badge(cap(l.user?.role), l.user?.role === 'admin' ? C.accent : C.blue, l.user?.role === 'admin' ? C.accentSoft : C.blueSoft),
-        fmtDateTime(l.clockInTime),
-        l.clockOutTime ? fmtDateTime(l.clockOutTime) : badge('Still In', C.green, C.greenSoft),
+        `<strong>${esc(l.user?.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${esc(val(l.user?.title))} &middot; ${badge(cap(l.user?.role), isAdmin?C.accent:C.blue, isAdmin?C.accentSoft:C.blueSoft)}</span>`,
+        `${fmtDateTime(l.clockInTime)}<span style="display:block;font-size:11px;color:${C.text2};margin-top:2px;">${l.clockOutTime ? fmtDateTime(l.clockOutTime) : badge('Still In', C.green, C.greenSoft)}</span>`,
         `<strong style="color:${C.green};">${fmtSecs(l.workedSeconds)}</strong>`,
-        fmtSecs(l.breakSeconds),
+        {v: fmtSecs(l.breakSeconds), c: 'hc'},
       ], i);
     });
     todayLeaves.forEach((lv, i) => {
       attRows += tr([
-        `<strong>${esc(lv.user?.name)}</strong>`,
-        val(lv.user?.title), '—',
+        `<strong>${esc(lv.user?.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${esc(val(lv.user?.title))}</span>`,
         badge('On Leave', C.yellow, C.yellowSoft),
-        '—', '—',
-        badge(cap(lv.type), C.yellow, C.yellowSoft),
+        '—',
+        {v: badge(cap(lv.type), C.yellow, C.yellowSoft), c: 'hc'},
       ], attendanceLogs.length + i);
     });
     body += tableWrap(attRows);
@@ -442,16 +479,14 @@ async function generateAndSend() {
   if (todayLeaves.length === 0) {
     body += noneToday('No leave requests for this day.');
   } else {
-    let lvRows = th(['Employee', 'Date', 'Type', 'Reason', 'Status', 'Submitted']);
+    let lvRows = th(['Employee', 'Date · Type', 'Reason', 'Status']);
     todayLeaves.forEach((lv, i) => {
       const [sc, sb] = leaveColor(lv.status);
       lvRows += tr([
         `<strong>${esc(lv.user?.name)}</strong>`,
-        lv.date,
-        cap(lv.type),
-        esc(val(lv.reason)),
-        badge(cap(lv.status), sc, sb),
-        fmtDateTime(lv.createdAt),
+        `${lv.date}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${cap(lv.type)}</span>`,
+        `<span style="font-size:11px;color:${C.text2};">${esc(val(lv.reason))}</span>`,
+        `${badge(cap(lv.status), sc, sb)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:3px;">${fmtDateTime(lv.createdAt)}</span>`,
       ], i);
     });
     body += tableWrap(lvRows);
@@ -464,26 +499,16 @@ async function generateAndSend() {
   if (groups.length === 0) {
     body += noneToday('No groups logged today.');
   } else {
-    let grpRows = th(['Group Name', 'Hotel', 'Type', 'Check-In', 'Check-Out', 'Rooms', 'Nights', 'Rate', 'CC Number', 'CC Expiry', 'Banquet', 'Notes', 'Logged By']);
+    let grpRows = th(['Group · Type', 'Hotel', 'Dates · Rooms', 'Rate · CC', {v:'Notes · By',c:'hc'}]);
     groups.forEach((g, i) => {
       const isGuaranteed = g.type === 'guaranteed';
       const hasBanquet   = g.roomBanquet === 'B';
       grpRows += tr([
-        `<strong style="color:${C.teal};">${esc(g.groupName)}</strong>`,
-        esc(g.hotel?.name || '—'),
-        badge(cap(g.type), isGuaranteed ? C.green : C.yellow, isGuaranteed ? C.greenSoft : C.yellowSoft),
-        fmtDate(g.checkIn),
-        fmtDate(g.checkOut),
-        val(g.numRooms),
-        val(g.numRoomNights),
-        g.rate ? `$${g.rate}` : '—',
-        `<strong style="color:${C.pink};font-family:monospace;letter-spacing:1px;">${val(g.creditCardNumber)}</strong>`,
-        `<span style="color:${C.pink};">${val(g.cardExpDate)}</span>`,
-        hasBanquet
-          ? `${fmtDate(g.banquetCheckIn)} ${g.banquetCheckInTime || ''}→${g.banquetCheckOutTime || ''} (${g.banquetDurationHours ?? '?'}h)`
-          : '—',
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(g.notes))}</span>`,
-        esc(val(g.loggedBy?.name)),
+        `<strong style="color:${C.teal};">${esc(g.groupName)}</strong><span style="display:block;margin-top:3px;">${badge(cap(g.type), isGuaranteed?C.green:C.yellow, isGuaranteed?C.greenSoft:C.yellowSoft)}${hasBanquet?` ${badge('Banquet',C.blue,C.blueSoft)}`:''}</span>`,
+        `<strong>${esc(g.hotel?.name||'—')}</strong>`,
+        `${fmtDate(g.checkIn)} → ${fmtDate(g.checkOut)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(g.numRooms)} rooms · ${val(g.numRoomNights)} nights</span>`,
+        `${g.rate?`<strong>$${g.rate}</strong>`:'—'}<span style="display:block;font-size:10px;font-family:monospace;color:${C.pink};letter-spacing:0.5px;margin-top:3px;">${val(g.creditCardNumber)}</span><span style="display:block;font-size:10px;color:${C.text3};">exp ${val(g.cardExpDate)}</span>`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(g.notes))}</span><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">by ${esc(val(g.loggedBy?.name))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(grpRows);
@@ -496,18 +521,13 @@ async function generateAndSend() {
   if (todayCorps.length === 0) {
     body += noneToday('No corporate profiles added today.');
   } else {
-    let corpRows = th(['Name', 'Company', 'Phone', 'Email', 'CC Number', 'CC Expiry', 'Notes', 'Logged By', 'Added']);
+    let corpRows = th(['Name · Company', 'Phone · Email', 'CC · Expiry', {v:'Notes · By',c:'hc'}]);
     todayCorps.forEach((c, i) => {
       corpRows += tr([
-        `<strong>${esc(c.name)}</strong>`,
-        esc(val(c.company)),
-        val(c.phone),
-        val(c.email),
-        `<strong style="color:${C.pink};font-family:monospace;letter-spacing:1px;">${val(c.ccNumber)}</strong>`,
-        `<span style="color:${C.pink};">${val(c.ccExpiry)}</span>`,
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(c.notes))}</span>`,
-        esc(val(c.loggedBy?.name)),
-        fmtDate(c.createdAt),
+        `<strong>${esc(c.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${esc(val(c.company))}</span>`,
+        `${val(c.phone)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(c.email)}</span>`,
+        `<strong style="color:${C.pink};font-family:monospace;letter-spacing:0.5px;">${val(c.ccNumber)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">exp ${val(c.ccExpiry)}</span>`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(c.notes))}</span><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">by ${esc(val(c.loggedBy?.name))} · ${fmtDate(c.createdAt)}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(corpRows);
@@ -520,16 +540,14 @@ async function generateAndSend() {
   if (salesCalls.length === 0) {
     body += noneToday('No sales calls logged today.');
   } else {
-    let scRows = th(['Contact', 'Phone', 'Outcome', 'Notes', 'Logged By', 'Time']);
+    let scRows = th(['Contact · Phone', 'Outcome', 'Notes', {v:'By · Time',c:'hc'}]);
     salesCalls.forEach((c, i) => {
       const [oc, ob] = outcomeColor(c.outcome);
       scRows += tr([
-        `<strong>${esc(c.name)}</strong>`,
-        val(c.phone),
+        `<strong>${esc(c.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(c.phone)}</span>`,
         badge(c.outcome, oc, ob),
         `<span style="font-size:11px;color:${C.text2};">${esc(val(c.notes))}</span>`,
-        esc(val(c.loggedBy?.name)),
-        fmtDateTime(c.createdAt),
+        {v:`${esc(val(c.loggedBy?.name))}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${fmtDateTime(c.createdAt)}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(scRows);
@@ -542,16 +560,14 @@ async function generateAndSend() {
   if (repCalls.length === 0) {
     body += noneToday('No reputation calls logged today.');
   } else {
-    let rcRows = th(['Contact', 'Phone', 'Outcome', 'Notes', 'Logged By', 'Time']);
+    let rcRows = th(['Contact · Phone', 'Outcome', 'Notes', {v:'By · Time',c:'hc'}]);
     repCalls.forEach((c, i) => {
       const [oc, ob] = outcomeColor(c.outcome);
       rcRows += tr([
-        `<strong>${esc(c.name)}</strong>`,
-        val(c.phone),
+        `<strong>${esc(c.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(c.phone)}</span>`,
         badge(c.outcome, oc, ob),
         `<span style="font-size:11px;color:${C.text2};">${esc(val(c.notes))}</span>`,
-        esc(val(c.loggedBy?.name)),
-        fmtDateTime(c.createdAt),
+        {v:`${esc(val(c.loggedBy?.name))}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${fmtDateTime(c.createdAt)}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(rcRows);
@@ -564,18 +580,15 @@ async function generateAndSend() {
   if (salesTasks.length === 0) {
     body += noneToday('No sales tasks active today.');
   } else {
-    let stRows = th(['Task', 'Assigned To', 'Created By', 'Deadline', 'Status', 'Completed At', 'Notes']);
+    let stRows = th(['Task', 'Assigned To', 'Deadline · Status', {v:'Notes',c:'hc'}]);
     salesTasks.forEach((t, i) => {
       const [sc, sb] = taskColor(t.status);
       const overdue  = t.status !== 'completed' && t.deadline && new Date(t.deadline) < new Date();
       stRows += tr([
-        `<strong${overdue ? ` style="color:${C.red};"` : ''}>${esc(t.taskName)}${overdue ? ' ⚠ OVERDUE' : ''}</strong>`,
+        `<strong${overdue ? ` style="color:${C.red};"` : ''}>${esc(t.taskName)}${overdue ? ' ⚠ OVERDUE' : ''}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">by ${esc(val(t.createdBy?.name))}</span>`,
         esc(val(t.assignedTo?.name)),
-        esc(val(t.createdBy?.name)),
-        fmtDate(t.deadline),
-        badge(cap(t.status), sc, sb),
-        t.completedAt ? fmtDateTime(t.completedAt) : '—',
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(t.notes))}</span>`,
+        `${fmtDate(t.deadline)}<span style="display:block;margin-top:3px;">${badge(cap(t.status), sc, sb)}</span>${t.completedAt?`<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">done ${fmtDateTime(t.completedAt)}</span>`:''}`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(t.notes))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(stRows);
@@ -588,18 +601,15 @@ async function generateAndSend() {
   if (repTasks.length === 0) {
     body += noneToday('No reputation tasks active today.');
   } else {
-    let rtRows = th(['Task', 'Assigned To', 'Created By', 'Deadline', 'Status', 'Completed At', 'Notes']);
+    let rtRows = th(['Task', 'Assigned To', 'Deadline · Status', {v:'Notes',c:'hc'}]);
     repTasks.forEach((t, i) => {
       const [sc, sb] = taskColor(t.status);
       const overdue  = t.status !== 'completed' && t.deadline && new Date(t.deadline) < new Date();
       rtRows += tr([
-        `<strong${overdue ? ` style="color:${C.red};"` : ''}>${esc(t.taskName)}${overdue ? ' ⚠ OVERDUE' : ''}</strong>`,
+        `<strong${overdue ? ` style="color:${C.red};"` : ''}>${esc(t.taskName)}${overdue ? ' ⚠ OVERDUE' : ''}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">by ${esc(val(t.createdBy?.name))}</span>`,
         esc(val(t.assignedTo?.name)),
-        esc(val(t.createdBy?.name)),
-        fmtDate(t.deadline),
-        badge(cap(t.status), sc, sb),
-        t.completedAt ? fmtDateTime(t.completedAt) : '—',
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(t.notes))}</span>`,
+        `${fmtDate(t.deadline)}<span style="display:block;margin-top:3px;">${badge(cap(t.status), sc, sb)}</span>${t.completedAt?`<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">done ${fmtDateTime(t.completedAt)}</span>`:''}`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(t.notes))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(rtRows);
@@ -612,21 +622,15 @@ async function generateAndSend() {
   if (rfps.length === 0) {
     body += noneToday('No RFPs added today.');
   } else {
-    let rfpRows = th(['Client', 'Hotel', 'Check-In', 'Check-Out', 'Rooms', 'Price', 'Status', 'Priority', 'In Consideration', 'Notes', 'Added By']);
+    let rfpRows = th(['Client', 'Hotel', 'Dates · Rooms', 'Price · Status', {v:'Notes · By',c:'hc'}]);
     rfps.forEach((r, i) => {
       const [sc, sb] = rfpColor(r.status);
       rfpRows += tr([
         `<strong>${esc(r.client)}</strong>`,
         esc(r.hotel?.name || '—'),
-        r.checkin  ? fmtDate(r.checkin)  : '—',
-        r.checkout ? fmtDate(r.checkout) : '—',
-        val(r.numRooms),
-        r.price ? `$${Number(r.price).toLocaleString()}` : '—',
-        badge(r.status, sc, sb),
-        r.priority        ? badge('Priority', C.yellow, C.yellowSoft) : '—',
-        r.inConsideration ? badge('Yes', C.blue, C.blueSoft) : '—',
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(r.notes))}</span>`,
-        esc(val(r.addedBy?.name)),
+        `${r.checkin?fmtDate(r.checkin):'—'} → ${r.checkout?fmtDate(r.checkout):'—'}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(r.numRooms)} rooms</span>`,
+        `${r.price?`<strong>$${Number(r.price).toLocaleString()}</strong>`:'—'}<span style="display:block;margin-top:3px;">${badge(r.status,sc,sb)}${r.priority?` ${badge('Priority',C.yellow,C.yellowSoft)}`:''}${r.inConsideration?` ${badge('Consider.',C.blue,C.blueSoft)}`:''}</span>`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(r.notes))}</span><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">by ${esc(val(r.addedBy?.name))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(rfpRows);
@@ -639,21 +643,15 @@ async function generateAndSend() {
   if (leads.length === 0) {
     body += noneToday('No leads added today.');
   } else {
-    let ldRows = th(['Contact', 'Company', 'Email', 'Phone', 'Room Type', 'Rooms', 'Check-In', 'Check-Out', 'Rate', 'Status', 'Source', 'Notes', 'Logged By']);
+    let ldRows = th(['Contact · Company', 'Phone · Email', 'Dates · Rooms', 'Rate · Status', {v:'Source · Notes',c:'hc'}]);
     leads.forEach((l, i) => {
       const [sc, sb] = leadColor(l.status);
       ldRows += tr([
-        `<strong>${esc(l.contactName)}</strong>`,
-        esc(val(l.company)), val(l.email), val(l.phone),
-        cap(l.roomType),
-        val(l.numRooms),
-        l.checkIn  ? fmtDate(l.checkIn)  : '—',
-        l.checkOut ? fmtDate(l.checkOut) : '—',
-        l.rateOffered ? `$${l.rateOffered}` : '—',
-        badge(cap(l.status), sc, sb),
-        esc(val(l.source)),
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(l.notes))}</span>`,
-        esc(val(l.loggedBy?.name)),
+        `<strong>${esc(l.contactName)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${esc(val(l.company))}</span>`,
+        `${val(l.phone)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(l.email)}</span>`,
+        `${l.checkIn?fmtDate(l.checkIn):'—'} → ${l.checkOut?fmtDate(l.checkOut):'—'}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(l.numRooms)} ${cap(l.roomType)} rooms</span>`,
+        `${l.rateOffered?`<strong>$${l.rateOffered}</strong>`:'—'}<span style="display:block;margin-top:3px;">${badge(cap(l.status),sc,sb)}</span>`,
+        {v:`${esc(val(l.source))}<span style="display:block;font-size:10px;color:${C.text2};margin-top:2px;">${esc(val(l.notes))}</span><span style="display:block;font-size:10px;color:${C.text3};margin-top:1px;">by ${esc(val(l.loggedBy?.name))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(ldRows);
@@ -666,16 +664,14 @@ async function generateAndSend() {
   if (hotelScores.length === 0) {
     body += noneToday('No hotel scores logged today.');
   } else {
-    let hsRows = th(['Hotel', 'City', 'Score', 'Date', 'Logged By', 'Notes']);
+    let hsRows = th(['Hotel · City', 'Score', 'Date · By', {v:'Notes',c:'hc'}]);
     hotelScores.forEach((hs, i) => {
       const sc = scoreColor(hs.score);
       hsRows += tr([
-        `<strong>${esc(hs.hotel?.name || '—')}</strong>`,
-        esc(val(hs.hotel?.city)),
+        `<strong>${esc(hs.hotel?.name || '—')}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${esc(val(hs.hotel?.city))}</span>`,
         `<strong style="color:${sc};font-size:15px;">${hs.score}</strong><span style="color:${C.text3};font-size:10px;">/100</span>`,
-        fmtDate(hs.date),
-        esc(val(hs.createdBy?.name)),
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(hs.notes))}</span>`,
+        `${fmtDate(hs.date)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">by ${esc(val(hs.createdBy?.name))}</span>`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(hs.notes))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(hsRows);
@@ -688,14 +684,12 @@ async function generateAndSend() {
   if (todayEvents.length === 0) {
     body += noneToday('No events today.');
   } else {
-    let evRows = th(['Event Name', 'Date', 'Notes', 'Created By', 'Added']);
+    let evRows = th(['Event', 'Date · By', {v:'Notes',c:'hc'}]);
     todayEvents.forEach((e, i) => {
       evRows += tr([
         `<strong>${esc(e.name)}</strong>`,
-        fmtDate(e.date),
-        `<span style="font-size:11px;color:${C.text2};">${esc(val(e.notes))}</span>`,
-        esc(val(e.createdBy?.name)),
-        fmtDate(e.createdAt),
+        `${fmtDate(e.date)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">added ${fmtDate(e.createdAt)} by ${esc(val(e.createdBy?.name))}</span>`,
+        {v:`<span style="font-size:11px;color:${C.text2};">${esc(val(e.notes))}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(evRows);
@@ -731,26 +725,75 @@ async function generateAndSend() {
   if (alerts.length === 0) {
     body += noneToday('No alerts today.');
   } else {
-    let alRows = th(['Message', 'Type', 'Read', 'Time']);
+    let alRows = th(['Message', 'Type · Status', {v:'Time',c:'hc'}]);
     alerts.forEach((a, i) => {
       alRows += tr([
         esc(val(a.message)),
-        badge(cap(a.type), C.yellow, C.yellowSoft),
-        a.read ? badge('Read', C.green, C.greenSoft) : badge('Unread', C.red, C.redSoft),
-        fmtDateTime(a.createdAt),
+        `${badge(cap(a.type), C.yellow, C.yellowSoft)}<span style="display:block;margin-top:3px;">${a.read ? badge('Read', C.green, C.greenSoft) : badge('Unread', C.red, C.redSoft)}</span>`,
+        {v:fmtDateTime(a.createdAt),c:'hc'},
       ], i);
     });
     body += tableWrap(alRows);
   }
 
+  // ════════════════════════════════════════════════════════════════════════════
+  // 15. REVENUE ANALYTICS — Current Month
+  // ════════════════════════════════════════════════════════════════════════════
+  {
+    const totalRevMo   = revAnalytics.reduce((s, p) => s + p.totalRevenue, 0);
+    const totalGrpMo   = revAnalytics.reduce((s, p) => s + p.totalGroups, 0);
+    const totalRNMo    = revAnalytics.reduce((s, p) => s + p.totalRoomNights, 0);
+    const fmtRev = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(2)}M` : n >= 1000 ? `$${(n/1000).toFixed(1)}K` : `$${n.toFixed(0)}`;
+
+    body += sectionHead(icon('barChart', C.teal, 18), `Revenue Analytics — ${revMonthName} ${revYear}`, C.teal, revAnalytics.length);
+
+    if (revAnalytics.length === 0) {
+      body += noneToday(`No group revenue recorded yet for ${revMonthName} ${revYear}.`);
+    } else {
+      // Month KPI strip
+      body += `<tr><td style="padding:0 0 10px;">
+        <table width="100%" cellpadding="0" cellspacing="0"><tr>
+          ${kpi(fmtRev(totalRevMo), `${revMonthName} Revenue`, C.teal, C.tealSoft)}
+          ${kpi(totalGrpMo, `Groups This Month`, C.green, C.greenSoft)}
+          ${kpi(totalRNMo, `Room Nights`, C.blue, C.blueSoft)}
+          ${kpi(revAnalytics.length, `Properties`, C.purple, C.purpleSoft)}
+        </tr></table>
+      </td></tr>`;
+
+      // Property breakdown table
+      let revRows = th(['#', 'Property · City', 'Groups · Nights', 'Revenue · Rate', {v:'Share',c:'hc'}]);
+      revAnalytics.forEach((p, i) => {
+        const pct  = totalRevMo > 0 ? ((p.totalRevenue / totalRevMo) * 100).toFixed(1) : '0.0';
+        const barW = totalRevMo > 0 ? Math.round((p.totalRevenue / totalRevMo) * 100) : 0;
+        const isTop = i === 0;
+        const rankColor = i===0?C.teal:i===1?C.blue:i===2?C.green:C.text3;
+        revRows += tr([
+          `<strong style="color:${rankColor};">${i+1}</strong>`,
+          `<strong>${esc(p.hotelName)}</strong>${isTop?` <span style="font-size:9px;font-weight:700;background:linear-gradient(135deg,${C.teal},${C.blue});color:#fff;border-radius:3px;padding:1px 5px;text-transform:uppercase;">Top</span>`:''}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${esc(p.hotelCity||'—')}</span>`,
+          `<span style="background:${C.surface3};border:1px solid ${C.border};border-radius:5px;padding:1px 7px;">${p.totalGroups}</span><span style="display:block;font-size:10px;color:${C.text3};margin-top:3px;">${p.totalRoomNights} nights</span>`,
+          `<strong style="color:${C.green};">${fmtRev(p.totalRevenue)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">avg $${p.avgRate||'—'}/night</span>`,
+          {v:`<table cellpadding="0" cellspacing="0"><tr><td style="width:${barW}px;max-width:100px;min-width:4px;height:7px;background:linear-gradient(90deg,${C.teal},${C.blue});border-radius:4px;"></td><td style="padding-left:6px;white-space:nowrap;font-size:11px;color:${C.text2};font-weight:600;">${pct}%</td></tr></table>`,c:'hc'},
+        ], i);
+      });
+      // Totals footer row
+      revRows += `<tr style="background:${C.surface2};">
+        <td colspan="2" style="padding:8px 10px;font-size:12px;font-weight:700;color:${C.text2};border-top:1px solid ${C.border2};">Total (${revMonthName})</td>
+        <td style="padding:8px 10px;font-size:12px;font-weight:700;color:${C.text};border-top:1px solid ${C.border2};"><span style="background:${C.surface3};border:1px solid ${C.border};border-radius:5px;padding:1px 7px;">${totalGrpMo}</span><span style="display:block;font-size:10px;color:${C.text3};margin-top:3px;">${totalRNMo} nights</span></td>
+        <td style="padding:8px 10px;font-size:13px;font-weight:800;color:${C.green};border-top:1px solid ${C.border2};">${fmtRev(totalRevMo)}</td>
+        <td class="hc" style="padding:8px 10px;border-top:1px solid ${C.border2};"></td>
+      </tr>`;
+      body += tableWrap(revRows);
+    }
+  }
+
   // ── TEAM SUMMARY ─────────────────────────────────────────────────────────────
   body += sectionHead(icon('users', C.accent, 18), "Team", C.accent, users.length);
-  let userRows = th(['Name', 'Role', 'Title', 'Email', 'Phone']);
+  let userRows = th(['Name · Title', 'Role', {v:'Email · Phone',c:'hc'}]);
   users.forEach((u, i) => {
     userRows += tr([
-      `<strong>${esc(u.name)}</strong>`,
+      `<strong>${esc(u.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(u.title)}</span>`,
       badge(cap(u.role), u.role === 'admin' ? C.accent : C.blue, u.role === 'admin' ? C.accentSoft : C.blueSoft),
-      val(u.title), val(u.email), val(u.phone),
+      {v:`${val(u.email)}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(u.phone)}</span>`,c:'hc'},
     ], i);
   });
   body += tableWrap(userRows);
@@ -767,14 +810,14 @@ async function generateAndSend() {
         <span style="color:${C.accent};">${esc(companyName)} CRM</span> &nbsp;&bull;&nbsp; Daily Report &nbsp;&bull;&nbsp; ${reportDate}
       </div>
       <div style="font-size:10px;color:${C.text3};margin-top:5px;">
-        Generated at ${nowTime} IST &nbsp;&middot;&nbsp; Covers activity from ${reportDay} (IST)
+        Generated at ${nowTime} EST &nbsp;&middot;&nbsp; Covers activity for ${reportDay} (EST)
       </div>
       <div style="font-size:10px;color:${C.text3};margin-top:3px;">
         ${allRecipients.length} recipient${allRecipients.length !== 1 ? 's' : ''} &nbsp;&middot;&nbsp;
         DB totals: ${users.length} users &bull; ${totalGroupCount} groups &bull; ${totalCorpCount} corp profiles &bull; ${hotels.length} hotels
       </div>
       <div style="font-size:10px;color:${C.text3};margin-top:3px;font-style:italic;">
-        Full data snapshot also saved to VPS log for ${reportDay}
+        Full data snapshot saved to VPS log for ${reportDay}
       </div>
     </div>
   </td></tr>`;

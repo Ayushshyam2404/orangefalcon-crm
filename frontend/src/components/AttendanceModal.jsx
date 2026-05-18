@@ -36,6 +36,7 @@ function fmtTime(dateStr) {
   if (!dateStr) return '—';
   return new Date(dateStr).toLocaleTimeString('en-US', {
     hour: '2-digit', minute: '2-digit', hour12: true,
+    timeZone: 'America/New_York',
   });
 }
 

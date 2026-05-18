@@ -36,7 +36,7 @@ function fmtTimeLong(secs) {
 
 function fmtTime12(dateStr) {
   if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  return new Date(dateStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/New_York' })
 }
 
 // Calculate live worked seconds from clock-in state
