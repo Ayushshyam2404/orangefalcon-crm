@@ -22,6 +22,7 @@ const EMPTY_FORM = {
   company: '',
   email: '',
   phone: '',
+  hotel: '',
   roomType: 'room',
   numRooms: '',
   checkIn: '',
@@ -32,7 +33,7 @@ const EMPTY_FORM = {
   notes: '',
 }
 
-function LeadForm({ initial = EMPTY_FORM, onSave, onCancel, isEdit }) {
+function LeadForm({ initial = EMPTY_FORM, onSave, onCancel, isEdit, hotels = [] }) {
   const [form, setForm] = useState({ ...EMPTY_FORM, ...initial })
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -87,6 +88,17 @@ function LeadForm({ initial = EMPTY_FORM, onSave, onCancel, isEdit }) {
       {/* Room details */}
       <div className={styles.formSection}>
         <div className={styles.formSectionLabel}>Room Details</div>
+        <div className={styles.formRow}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label>Hotel</label>
+            <select value={form.hotel} onChange={e => set('hotel', e.target.value)}>
+              <option value="">— Select hotel —</option>
+              {hotels.map(h => (
+                <option key={h._id} value={h._id}>{h.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
         <div className={styles.formRow}>
           <div>
             <label>Room Type</label>
@@ -181,6 +193,7 @@ function StatusPill({ status }) {
 
 export default function InboundLeads() {
   const [leads, setLeads] = useState([])
+  const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null) // null | 'new' | leadObject
   const [filterStatus, setFilterStatus] = useState('all')
@@ -200,6 +213,10 @@ export default function InboundLeads() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    api.get('/hotels', { params: { category: 'sales' } }).then(({ data }) => setHotels(data)).catch(() => {})
+  }, [])
 
   useEffect(() => { loadLeads() }, [filterStatus])
 
@@ -405,6 +422,10 @@ export default function InboundLeads() {
                         </span>
                       </div>
                       <div className={styles.detailItem}>
+                        <span className={styles.detailLabel}>Hotel</span>
+                        <span className={styles.detailValue}>{lead.hotel?.name || '—'}</span>
+                      </div>
+                      <div className={styles.detailItem}>
                         <span className={styles.detailLabel}>Source</span>
                         <span className={styles.detailValue}>{lead.source || '—'}</span>
                       </div>
@@ -435,10 +456,12 @@ export default function InboundLeads() {
           <LeadForm
             initial={modal === 'new' ? EMPTY_FORM : {
               ...modal,
+              hotel: modal.hotel?._id || modal.hotel || '',
               checkIn: modal.checkIn ? modal.checkIn.slice(0, 10) : '',
               checkOut: modal.checkOut ? modal.checkOut.slice(0, 10) : '',
             }}
             isEdit={modal !== 'new'}
+            hotels={hotels}
             onSave={handleSave}
             onCancel={() => setModal(null)}
           />

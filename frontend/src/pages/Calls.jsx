@@ -9,8 +9,12 @@ import { exportToExcel, formatCalls } from '../utils/exportToExcel'
 
 const OUTCOMES = ['Connected', 'Voicemail', 'No Answer', 'Interested', 'Not Interested']
 
-function CallForm({ initial = {}, onSave, onCancel }) {
-  const [form, setForm] = useState({ name: '', phone: '', outcome: 'Connected', notes: '', ...initial })
+function CallForm({ initial = {}, hotels = [], onSave, onCancel }) {
+  const [form, setForm] = useState({
+    name: '', phone: '', outcome: 'Connected', notes: '',
+    hotel: initial.hotel?._id || initial.hotel || '',
+    ...initial,
+  })
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -32,6 +36,13 @@ function CallForm({ initial = {}, onSave, onCancel }) {
         <input type="tel" value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 000-0000" />
       </div>
       <div className={styles.formGroup}>
+        <label>Hotel</label>
+        <select value={form.hotel} onChange={e => set('hotel', e.target.value)}>
+          <option value="">— Select hotel —</option>
+          {hotels.map(h => <option key={h._id} value={h._id}>{h.name} ({h.city})</option>)}
+        </select>
+      </div>
+      <div className={styles.formGroup}>
         <label>Outcome</label>
         <select value={form.outcome} onChange={e => set('outcome', e.target.value)}>
           {OUTCOMES.map(o => <option key={o}>{o}</option>)}
@@ -51,13 +62,18 @@ function CallForm({ initial = {}, onSave, onCancel }) {
 
 export default function Calls() {
   const [calls, setCalls] = useState([])
+  const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(null)
 
+  useEffect(() => {
+    api.get('/hotels', { params: { category: 'sales' } }).then(({ data }) => setHotels(data))
+  }, [])
+
   const fetchCalls = async () => {
-    const params = {}
+    const params = { category: 'sales' }
     if (filter !== 'all') params.outcome = filter
     if (search) params.search = search
     const { data } = await api.get('/calls', { params })
@@ -69,9 +85,9 @@ export default function Calls() {
 
   const handleSave = async (form) => {
     if (modal?._id) {
-      await api.put(`/calls/${modal._id}`, form)
+      await api.put(`/calls/${modal._id}`, { ...form, category: 'sales' })
     } else {
-      await api.post('/calls', form)
+      await api.post('/calls', { ...form, category: 'sales' })
     }
     setModal(null)
     fetchCalls()
@@ -125,6 +141,7 @@ export default function Calls() {
               <tr>
                 <th>Prospect</th>
                 <th>Phone</th>
+                <th>Hotel</th>
                 <th>Outcome</th>
                 <th>Notes</th>
                 <th>Date</th>
@@ -134,13 +151,14 @@ export default function Calls() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className={styles.emptyCell}>Loading...</td></tr>
+                <tr><td colSpan={8} className={styles.emptyCell}>Loading...</td></tr>
               ) : calls.length === 0 ? (
-                <tr><td colSpan={7} className={styles.emptyCell}>No calls logged yet.</td></tr>
+                <tr><td colSpan={8} className={styles.emptyCell}>No calls logged yet.</td></tr>
               ) : calls.map(c => (
                 <tr key={c._id}>
                   <td><strong>{c.name}</strong></td>
                   <td className={styles.dimText}>{c.phone || '—'}</td>
+                  <td className={styles.dimText}>{c.hotel ? `${c.hotel.name}` : '—'}</td>
                   <td><Badge label={c.outcome} /></td>
                   <td className={styles.noteCell}>{c.notes || '—'}</td>
                   <td className={styles.mutedText}>{fmtDate(c.createdAt)}</td>
@@ -162,7 +180,7 @@ export default function Calls() {
 
       {modal && (
         <Modal title={modal === 'new' ? 'Log Call' : 'Edit Call'} onClose={() => setModal(null)}>
-          <CallForm initial={modal === 'new' ? {} : modal} onSave={handleSave} onCancel={() => setModal(null)} />
+          <CallForm initial={modal === 'new' ? {} : modal} hotels={hotels} onSave={handleSave} onCancel={() => setModal(null)} />
         </Modal>
       )}
     </div>

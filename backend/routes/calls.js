@@ -15,6 +15,7 @@ router.get('/', protect, async (req, res) => {
 
     const calls = await Call.find(filter)
       .populate('loggedBy', 'name username')
+      .populate('hotel', 'name city')
       .sort({ createdAt: -1 });
     res.json(calls);
   } catch (err) {
@@ -25,11 +26,14 @@ router.get('/', protect, async (req, res) => {
 // POST /api/calls
 router.post('/', protect, async (req, res) => {
   try {
-    const { name, phone, outcome, notes, category } = req.body;
+    const { name, phone, outcome, notes, category, hotel } = req.body;
     if (!name) return res.status(400).json({ message: 'Prospect name is required' });
 
-    const call = await Call.create({ name, phone, outcome, notes, category: category || 'sales', loggedBy: req.user._id });
-    const populated = await call.populate('loggedBy', 'name username');
+    const call = await Call.create({ name, phone, outcome, notes, category: category || 'sales', hotel: hotel || null, loggedBy: req.user._id });
+    const populated = await call.populate([
+      { path: 'loggedBy', select: 'name username' },
+      { path: 'hotel', select: 'name city' },
+    ]);
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -40,7 +44,8 @@ router.post('/', protect, async (req, res) => {
 router.put('/:id', protect, async (req, res) => {
   try {
     const call = await Call.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
-      .populate('loggedBy', 'name username');
+      .populate('loggedBy', 'name username')
+      .populate('hotel', 'name city');
     if (!call) return res.status(404).json({ message: 'Call not found' });
     res.json(call);
   } catch (err) {

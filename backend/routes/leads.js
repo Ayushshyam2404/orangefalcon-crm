@@ -14,6 +14,7 @@ router.get('/', protect, async (req, res) => {
 
     const leads = await Lead.find(filter)
       .populate('loggedBy', 'name')
+      .populate('hotel', 'name')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -27,7 +28,7 @@ router.post('/', protect, async (req, res) => {
     const {
       contactName, company, email, phone,
       roomType, numRooms, checkIn, checkOut,
-      rateOffered, status, source, notes,
+      rateOffered, status, source, notes, hotel,
     } = req.body;
 
     if (!contactName) return res.status(400).json({ message: 'Contact name is required' });
@@ -40,6 +41,7 @@ router.post('/', protect, async (req, res) => {
       rateOffered: rateOffered || null,
       status: status || 'new',
       source, notes,
+      hotel: hotel || null,
       loggedBy: req.user._id,
     });
 

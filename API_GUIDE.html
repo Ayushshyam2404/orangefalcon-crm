@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orange Falcon CRM — External API Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; color: #1a1a1a; background: #fff; padding: 40px; max-width: 960px; margin: auto; }
+  h1 { font-size: 28px; color: #111; margin-bottom: 6px; }
+  h2 { font-size: 20px; color: #111; margin: 36px 0 12px; border-bottom: 2px solid #e5e5e5; padding-bottom: 6px; }
+  h3 { font-size: 15px; color: #333; margin: 20px 0 8px; }
+  p  { line-height: 1.7; margin-bottom: 10px; color: #444; }
+  a  { color: #2563eb; }
+  code { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; padding: 1px 6px; font-family: "SF Mono", "Fira Code", monospace; font-size: 12.5px; color: #d63384; }
+  pre { background: #1e1e2e; color: #cdd6f4; border-radius: 8px; padding: 16px 20px; overflow-x: auto; font-family: "SF Mono", "Fira Code", monospace; font-size: 12.5px; line-height: 1.7; margin: 10px 0 16px; }
+  pre .kw  { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm  { color: #6c7086; font-style: italic; }
+  pre .key { color: #cba6f7; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { background: #f9fafb; border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; font-weight: 600; color: #374151; }
+  td { border: 1px solid #e5e7eb; padding: 8px 12px; vertical-align: top; color: #374151; }
+  td code { background: none; border: none; padding: 0; font-size: 12px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: .4px; margin-right: 6px; }
+  .get  { background: #dbeafe; color: #1d4ed8; }
+  .tip  { background: #fefce8; border-left: 4px solid #facc15; padding: 12px 16px; margin: 14px 0; border-radius: 4px; font-size: 13px; color: #713f12; }
+  .warn { background: #fff7ed; border-left: 4px solid #f97316; padding: 12px 16px; margin: 14px 0; border-radius: 4px; font-size: 13px; color: #7c2d12; }
+  .key-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 14px 18px; margin: 14px 0; font-family: "SF Mono", monospace; font-size: 12px; color: #166534; word-break: break-all; }
+  .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 32px 0; }
+  .endpoint-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .endpoint-url { font-family: "SF Mono", monospace; font-size: 12.5px; color: #111; }
+  @media print {
+    body { padding: 20px; }
+    pre  { white-space: pre-wrap; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Orange Falcon CRM</h1>
+<p class="subtitle">External Data API — Complete Reference Guide &nbsp;·&nbsp; Generated May 21, 2026</p>
+
+<hr/>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2>1. Overview</h2>
+<p>
+  The External Data API exposes <strong>every collection</strong> in the Orange Falcon CRM database
+  as read-only JSON endpoints. It also provides a <strong>real-time Server-Sent Events (SSE) stream</strong>
+  that pushes live changes (inserts, updates, deletes) to any connected client the moment they happen.
+</p>
+<p>This API is designed for external applications and dashboards that need to read CRM data without going through the internal user-login flow.</p>
+
+<table>
+  <tr><th>Property</th><th>Value</th></tr>
+  <tr><td>Base URL</td><td><code>https://74.208.5.193</code></td></tr>
+  <tr><td>Protocol</td><td>HTTPS (self-signed cert — see SSL note below)</td></tr>
+  <tr><td>Authentication</td><td>API Key (header or query param)</td></tr>
+  <tr><td>Response format</td><td>JSON</td></tr>
+  <tr><td>Access level</td><td>Read-only for all collections</td></tr>
+</table>
+
+<div class="warn">
+  <strong>SSL Note:</strong> The server uses a self-signed certificate. If your HTTP client rejects it, disable certificate verification:<br/>
+  curl → <code>-k</code> &nbsp;|&nbsp; Node.js fetch/axios → <code>rejectUnauthorized: false</code> &nbsp;|&nbsp; Python requests → <code>verify=False</code>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2>2. Authentication</h2>
+<p>Every request must include the API key. You can pass it in two ways:</p>
+
+<h3>Option A — Request Header (recommended)</h3>
+<pre>x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c</pre>
+
+<h3>Option B — Query Parameter</h3>
+<pre>https://74.208.5.193/api/external/users<span class="str">?apiKey=ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c</span></pre>
+
+<p><strong>Your API Key:</strong></p>
+<div class="key-box">ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c</div>
+
+<h3>Error responses</h3>
+<table>
+  <tr><th>HTTP Status</th><th>Meaning</th></tr>
+  <tr><td><code>401</code></td><td>Missing or wrong API key</td></tr>
+  <tr><td><code>503</code></td><td>EXTERNAL_API_KEY not configured on the server</td></tr>
+  <tr><td><code>500</code></td><td>Database or server error</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2>3. Endpoints</h2>
+
+<!-- ── Snapshot ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/snapshot</code></h3>
+<p>Returns a <strong>full dump of every collection</strong> in a single request. Ideal for an initial data load.</p>
+<pre>{
+  <span class="key">"users"</span>:             [ ... ],
+  <span class="key">"hotels"</span>:            [ ... ],
+  <span class="key">"rfps"</span>:              [ ... ],
+  <span class="key">"calls"</span>:             [ ... ],
+  <span class="key">"leads"</span>:             [ ... ],
+  <span class="key">"groups"</span>:            [ ... ],
+  <span class="key">"tasks"</span>:             [ ... ],
+  <span class="key">"events"</span>:            [ ... ],
+  <span class="key">"announcements"</span>:     [ ... ],
+  <span class="key">"alerts"</span>:            [ ... ],
+  <span class="key">"hotelScores"</span>:       [ ... ],
+  <span class="key">"corporateProfiles"</span>: [ ... ],
+  <span class="key">"routines"</span>:          [ ... ],
+  <span class="key">"attendance"</span>:        [ ... ],
+  <span class="key">"leaveRequests"</span>:     [ ... ],
+  <span class="key">"companySettings"</span>:   { ... },
+  <span class="key">"generatedAt"</span>:       <span class="str">"2026-05-21T09:00:00.000Z"</span>
+}</pre>
+
+<hr/>
+
+<!-- ── Users ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/users</code></h3>
+<p>All CRM users. Sensitive fields (password, failed login attempts, lock info) are automatically stripped.</p>
+<table>
+  <tr><th>Query Param</th><th>Description</th></tr>
+  <tr><td>—</td><td>No filters available. Returns all users.</td></tr>
+</table>
+<p>Key fields returned per user: <code>_id</code>, <code>name</code>, <code>username</code>, <code>role</code> (admin/staff), <code>title</code>, <code>email</code>, <code>phone</code>, <code>online</code>, <code>clockedIn</code>, <code>lastLogin</code>, <code>sessionSeconds</code></p>
+
+<hr/>
+
+<!-- ── Hotels ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/hotels</code></h3>
+<p>All hotel records.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>category</code></td><td><code>sales</code> | <code>reputation</code></td><td>Filter by hotel category</td></tr>
+</table>
+<p>Key fields: <code>_id</code>, <code>name</code>, <code>city</code>, <code>category</code></p>
+
+<hr/>
+
+<!-- ── RFPs ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/rfps</code></h3>
+<p>Requests for Proposal (group sales leads).</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>status</code></td><td><code>Pending</code> | <code>Responded</code> | <code>Won</code> | <code>Lost</code> | <code>Follow Up</code></td><td>Filter by status</td></tr>
+  <tr><td><code>hotel</code></td><td>Hotel name string</td><td>Filter by hotel</td></tr>
+</table>
+<p>Key fields: <code>client</code>, <code>hotel</code>, <code>checkin</code>, <code>checkout</code>, <code>price</code>, <code>numRooms</code>, <code>status</code>, <code>priority</code>, <code>inConsideration</code>, <code>addedBy</code></p>
+
+<hr/>
+
+<!-- ── Calls ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/calls</code></h3>
+<p>Call log entries.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>category</code></td><td><code>sales</code> | <code>reputation</code></td><td>Filter by category</td></tr>
+  <tr><td><code>outcome</code></td><td><code>Connected</code> | <code>Voicemail</code> | <code>No Answer</code> | <code>Interested</code> | <code>Not Interested</code></td><td>Filter by call outcome</td></tr>
+</table>
+<p>Key fields: <code>name</code>, <code>phone</code>, <code>outcome</code>, <code>notes</code>, <code>category</code>, <code>loggedBy</code>, <code>createdAt</code></p>
+
+<hr/>
+
+<!-- ── Leads ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/leads</code></h3>
+<p>Inbound lead records.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>status</code></td><td><code>new</code> | <code>contacted</code> | <code>quoted</code> | <code>converted</code> | <code>lost</code></td><td>Filter by lead status</td></tr>
+</table>
+<p>Key fields: <code>contactName</code>, <code>company</code>, <code>email</code>, <code>phone</code>, <code>roomType</code>, <code>numRooms</code>, <code>checkIn</code>, <code>checkOut</code>, <code>rateOffered</code>, <code>status</code>, <code>source</code>, <code>loggedBy</code></p>
+
+<hr/>
+
+<!-- ── Groups ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/groups</code></h3>
+<p>Hotel group booking records.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>type</code></td><td><code>pickup</code> | <code>guaranteed</code></td><td>Filter by booking type</td></tr>
+  <tr><td><code>hotel</code></td><td>Hotel name string</td><td>Filter by hotel</td></tr>
+</table>
+<p>Key fields: <code>groupName</code>, <code>hotel</code>, <code>checkIn</code>, <code>checkOut</code>, <code>rate</code>, <code>numRooms</code>, <code>numRoomNights</code>, <code>type</code>, <code>loggedBy</code></p>
+
+<hr/>
+
+<!-- ── Tasks ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/tasks</code></h3>
+<p>All tasks across all users.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>status</code></td><td><code>pending</code> | <code>in-progress</code> | <code>completed</code></td><td>Filter by status</td></tr>
+  <tr><td><code>category</code></td><td><code>sales</code> | <code>reputation</code></td><td>Filter by category</td></tr>
+</table>
+<p>Key fields: <code>taskName</code>, <code>deadline</code>, <code>status</code>, <code>category</code>, <code>notes</code>, <code>assignedTo</code>, <code>createdBy</code>, <code>completedAt</code></p>
+
+<hr/>
+
+<!-- ── Events ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/events</code></h3>
+<p>Calendar events.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>month</code></td><td><code>YYYY-MM</code> (e.g. <code>2026-05</code>)</td><td>Filter events by month</td></tr>
+</table>
+<p>Key fields: <code>name</code>, <code>date</code>, <code>notes</code>, <code>createdBy</code></p>
+
+<hr/>
+
+<!-- ── Announcements ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/announcements</code></h3>
+<p>Company announcements, newest first.</p>
+<p>Key fields: <code>heading</code>, <code>body</code>, <code>noticeDate</code>, <code>priority</code> (normal/important/urgent), <code>author</code></p>
+
+<hr/>
+
+<!-- ── Alerts ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/alerts</code></h3>
+<p>System alerts (last 200, newest first).</p>
+<p>Key fields: <code>message</code>, <code>type</code>, <code>iconType</code>, <code>read</code>, <code>createdAt</code></p>
+
+<hr/>
+
+<!-- ── Hotel Scores ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/hotel-scores</code></h3>
+<p>Reputation scores per hotel.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>hotel</code></td><td>Hotel ID or name</td><td>Filter by hotel</td></tr>
+</table>
+<p>Key fields: <code>hotel</code> (name, city), <code>date</code>, <code>score</code> (0–100), <code>notes</code>, <code>createdBy</code></p>
+
+<hr/>
+
+<!-- ── Corporate Profiles ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/corporate-profiles</code></h3>
+<p>Corporate payment profiles.</p>
+<p>Key fields: <code>name</code>, <code>company</code>, <code>phone</code>, <code>email</code>, <code>ccNumber</code>, <code>ccExpiry</code>, <code>notes</code>, <code>loggedBy</code></p>
+
+<hr/>
+
+<!-- ── Routines ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/routines</code></h3>
+<p>User routine task templates.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>category</code></td><td><code>sales</code> | <code>reputation</code></td><td>Filter by category</td></tr>
+</table>
+<p>Key fields: <code>user</code>, <code>taskName</code>, <code>defaultNote</code>, <code>order</code>, <code>category</code></p>
+
+<hr/>
+
+<!-- ── Attendance ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/attendance</code></h3>
+<p>Attendance clock-in/out logs.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>user</code></td><td>User ID</td><td>Filter by specific user</td></tr>
+  <tr><td><code>date</code></td><td><code>YYYY-MM-DD</code></td><td>Filter by specific date</td></tr>
+</table>
+<p>Key fields: <code>user</code>, <code>date</code>, <code>clockInTime</code>, <code>clockOutTime</code>, <code>workedSeconds</code>, <code>breakSeconds</code></p>
+
+<hr/>
+
+<!-- ── Leave Requests ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/leave-requests</code></h3>
+<p>Employee leave requests.</p>
+<table>
+  <tr><th>Query Param</th><th>Values</th><th>Description</th></tr>
+  <tr><td><code>status</code></td><td><code>pending</code> | <code>approved</code> | <code>denied</code></td><td>Filter by approval status</td></tr>
+  <tr><td><code>user</code></td><td>User ID</td><td>Filter by user</td></tr>
+</table>
+<p>Key fields: <code>user</code>, <code>date</code>, <code>type</code> (sick/vacation/personal/other), <code>reason</code>, <code>status</code></p>
+
+<hr/>
+
+<!-- ── Company Settings ── -->
+<h3><span class="badge get">GET</span> <code>/api/external/company-settings</code></h3>
+<p>Singleton company configuration document.</p>
+<p>Key fields: <code>companyName</code>, <code>logo</code>, <code>expectedClockIn</code>, <code>expectedHoursPerDay</code>, <code>expectedDaysPerWeek</code>, <code>reportRecipients</code></p>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2>4. Real-Time Stream (SSE)</h2>
+
+<h3><span class="badge get">GET</span> <code>/api/external/stream</code></h3>
+<p>
+  Opens a persistent <strong>Server-Sent Events</strong> connection. The server pushes events in real time
+  whenever any data in the CRM changes (new record, update, or delete).
+</p>
+
+<div class="tip">
+  <strong>Tip:</strong> On first connect, the server immediately sends a full <code>snapshot</code> event so
+  your app has the current state before any change events arrive.
+</div>
+
+<h3>Event types</h3>
+<table>
+  <tr><th>Event name</th><th>When fired</th><th>Payload</th></tr>
+  <tr>
+    <td><code>snapshot</code></td>
+    <td>Immediately on connect</td>
+    <td>Full data dump (same as <code>/snapshot</code> endpoint)</td>
+  </tr>
+  <tr>
+    <td><code>change</code></td>
+    <td>Any insert / update / delete in the DB</td>
+    <td><code>{ collection, operationType, documentId, document }</code></td>
+  </tr>
+  <tr>
+    <td><code>ping</code></td>
+    <td>Every 30 seconds</td>
+    <td><code>{ ts }</code> — keep-alive heartbeat</td>
+  </tr>
+</table>
+
+<h3>JavaScript / Browser example</h3>
+<pre><span class="cm">// Works in any browser or Node.js (node-fetch or eventsource package)</span>
+<span class="kw">const</span> API_KEY = <span class="str">"ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>;
+<span class="kw">const</span> es = <span class="kw">new</span> EventSource(
+  <span class="str">`https://74.208.5.193/api/external/stream?apiKey=${API_KEY}`</span>
+);
+
+<span class="cm">// Initial full state</span>
+es.addEventListener(<span class="str">"snapshot"</span>, (e) => {
+  <span class="kw">const</span> data = JSON.parse(e.data);
+  console.log(<span class="str">"Full snapshot received:"</span>, data.users.length, <span class="str">"users"</span>);
+});
+
+<span class="cm">// Live changes</span>
+es.addEventListener(<span class="str">"change"</span>, (e) => {
+  <span class="kw">const</span> { collection, operationType, documentId, document } = JSON.parse(e.data);
+  console.log(<span class="str">`[${collection}] ${operationType} → id: ${documentId}`</span>);
+});
+
+<span class="cm">// Keep-alive</span>
+es.addEventListener(<span class="str">"ping"</span>, (e) => {
+  <span class="kw">const</span> { ts } = JSON.parse(e.data);
+  console.log(<span class="str">"ping"</span>, ts);
+});
+
+es.onerror = (err) => console.error(<span class="str">"SSE error"</span>, err);</pre>
+
+<h3>Python example</h3>
+<pre><span class="kw">import</span> sseclient, requests
+
+API_KEY = <span class="str">"ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+url = <span class="str">f"https://74.208.5.193/api/external/stream?apiKey={API_KEY}"</span>
+
+response = requests.get(url, stream=<span class="kw">True</span>, verify=<span class="kw">False</span>)
+client = sseclient.SSEClient(response)
+
+<span class="kw">for</span> event <span class="kw">in</span> client.events():
+    <span class="kw">import</span> json
+    data = json.loads(event.data)
+    print(event.event, data)</pre>
+
+<h3>React / Next.js example</h3>
+<pre><span class="kw">import</span> { useEffect, useState } <span class="kw">from</span> <span class="str">"react"</span>;
+
+<span class="kw">const</span> API_KEY = <span class="str">"ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>;
+
+<span class="kw">export default function</span> Dashboard() {
+  <span class="kw">const</span> [data, setData] = useState(<span class="kw">null</span>);
+
+  useEffect(() => {
+    <span class="kw">const</span> es = <span class="kw">new</span> EventSource(
+      <span class="str">`https://74.208.5.193/api/external/stream?apiKey=${API_KEY}`</span>
+    );
+    es.addEventListener(<span class="str">"snapshot"</span>, (e) => setData(JSON.parse(e.data)));
+    es.addEventListener(<span class="str">"change"</span>,   (e) => {
+      <span class="cm">// Re-fetch just that collection or refetch full snapshot</span>
+      <span class="kw">const</span> { collection } = JSON.parse(e.data);
+      console.log(collection, <span class="str">"changed — refetch if needed"</span>);
+    });
+    <span class="kw">return</span> () => es.close(); <span class="cm">// cleanup on unmount</span>
+  }, []);
+
+  <span class="kw">return</span> &lt;pre&gt;{JSON.stringify(data, <span class="kw">null</span>, 2)}&lt;/pre&gt;;
+}</pre>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2>5. Quick Reference — All Endpoints</h2>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Query Params</th></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/snapshot</code></td><td>Full dump of all collections</td><td>—</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/users</code></td><td>All users</td><td>—</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/hotels</code></td><td>Hotels</td><td><code>category</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/rfps</code></td><td>RFPs</td><td><code>status</code>, <code>hotel</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/calls</code></td><td>Call logs</td><td><code>category</code>, <code>outcome</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/leads</code></td><td>Inbound leads</td><td><code>status</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/groups</code></td><td>Group bookings</td><td><code>type</code>, <code>hotel</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/tasks</code></td><td>Tasks</td><td><code>status</code>, <code>category</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/events</code></td><td>Calendar events</td><td><code>month</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/announcements</code></td><td>Announcements</td><td>—</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/alerts</code></td><td>System alerts (last 200)</td><td>—</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/hotel-scores</code></td><td>Reputation scores</td><td><code>hotel</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/corporate-profiles</code></td><td>Corporate profiles</td><td>—</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/routines</code></td><td>Routine templates</td><td><code>category</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/attendance</code></td><td>Attendance logs</td><td><code>user</code>, <code>date</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/leave-requests</code></td><td>Leave requests</td><td><code>status</code>, <code>user</code></td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/company-settings</code></td><td>Company settings</td><td>—</td></tr>
+  <tr><td><code>GET</code></td><td><code>/api/external/stream</code></td><td>Real-time SSE stream</td><td><code>apiKey</code> (optional)</td></tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<h2>6. curl Examples</h2>
+<pre><span class="cm"># Full snapshot</span>
+curl -sk https://74.208.5.193/api/external/snapshot \
+  -H <span class="str">"x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+
+<span class="cm"># Users</span>
+curl -sk https://74.208.5.193/api/external/users \
+  -H <span class="str">"x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+
+<span class="cm"># RFPs with status filter</span>
+curl -sk <span class="str">"https://74.208.5.193/api/external/rfps?status=Won"</span> \
+  -H <span class="str">"x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+
+<span class="cm"># Tasks — only pending sales tasks</span>
+curl -sk <span class="str">"https://74.208.5.193/api/external/tasks?status=pending&amp;category=sales"</span> \
+  -H <span class="str">"x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+
+<span class="cm"># Calls — only Connected calls</span>
+curl -sk <span class="str">"https://74.208.5.193/api/external/calls?outcome=Connected"</span> \
+  -H <span class="str">"x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+
+<span class="cm"># Attendance for a specific date</span>
+curl -sk <span class="str">"https://74.208.5.193/api/external/attendance?date=2026-05-21"</span> \
+  -H <span class="str">"x-api-key: ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span>
+
+<span class="cm"># Real-time stream (will stay open indefinitely)</span>
+curl -skN <span class="str">"https://74.208.5.193/api/external/stream?apiKey=ofcrm_56a712b8ecc434715ef8ba4020bae29518beacb98f9bdfdb8b4529a27d5b152c"</span></pre>
+
+<hr/>
+<p style="color:#9ca3af; font-size:12px; text-align:center; margin-top:24px;">
+  Orange Falcon CRM &nbsp;·&nbsp; External API Guide &nbsp;·&nbsp; Generated May 21, 2026
+</p>
+
+</body>
+</html>

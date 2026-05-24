@@ -11,6 +11,7 @@ const callSchema = new mongoose.Schema(
     },
     notes: { type: String, default: '' },
     category: { type: String, enum: ['sales', 'reputation'], default: 'sales' },
+    hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', default: null },
     loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

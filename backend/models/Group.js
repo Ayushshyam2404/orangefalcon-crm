@@ -60,7 +60,11 @@ groupSchema.pre('findOneAndUpdate', function (next) {
       update.numRoomNights = days * numRooms;
     }
   }
-  if (update.banquetCheckInTime && update.banquetCheckOutTime) {
+  const timeRegex = /^\d{2}:\d{2}$/;
+  if (
+    update.banquetCheckInTime && update.banquetCheckOutTime &&
+    timeRegex.test(update.banquetCheckInTime) && timeRegex.test(update.banquetCheckOutTime)
+  ) {
     const [inHour, inMin] = update.banquetCheckInTime.split(':').map(Number);
     const [outHour, outMin] = update.banquetCheckOutTime.split(':').map(Number);
     const inMinutes = inHour * 60 + inMin;

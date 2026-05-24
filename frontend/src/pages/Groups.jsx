@@ -95,8 +95,8 @@ const Groups = () => {
       creditCardNumber: group.creditCardNumber,
       cardExpDate: group.cardExpDate,
       roomBanquet: group.roomBanquet,
-      banquetCheckInTime: group.banquetCheckInTime,
-      banquetCheckOutTime: group.banquetCheckOutTime,
+      banquetCheckInTime: group.banquetCheckInTime === 'Not available' ? '' : (group.banquetCheckInTime || ''),
+      banquetCheckOutTime: group.banquetCheckOutTime === 'Not available' ? '' : (group.banquetCheckOutTime || ''),
       notes: group.notes,
     });
     setEditingId(group._id);

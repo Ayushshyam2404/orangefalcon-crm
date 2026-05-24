@@ -18,6 +18,7 @@ const leadSchema = new mongoose.Schema(
     },
     source: { type: String, trim: true, default: '' },
     notes: { type: String, trim: true, default: '' },
+    hotel: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel', default: null },
     loggedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
