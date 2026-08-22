@@ -24,6 +24,8 @@ import RevenueAnalytics from './pages/RevenueAnalytics'
 import ReputationDashboard from './pages/ReputationDashboard'
 import ReputationTasker from './pages/ReputationTasker'
 import ReputationCalls from './pages/ReputationCalls'
+import Properties from './pages/Properties'
+import PropertyDetail from './pages/PropertyDetail'
 import api from './utils/api'
 
 // ── Force change password modal ───────────────────────────────────────────────
@@ -282,6 +284,8 @@ export default function App() {
             <Route path="/reputation" element={<ReputationDashboard />} />
             <Route path="/reputation-tasks" element={<ReputationTasker />} />
             <Route path="/reputation-calls" element={<ReputationCalls />} />
+            <Route path="/properties" element={<Properties />} />
+            <Route path="/properties/view" element={<PropertyDetail />} />
 
             <Route element={<AdminRoute />}>
               <Route path="/settings" element={<Settings />} />

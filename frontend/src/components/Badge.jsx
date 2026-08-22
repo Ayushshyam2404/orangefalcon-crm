@@ -24,3 +24,24 @@ export function Badge({ label }) {
     </span>
   )
 }
+
+// Solid color matching each badge variant — handy for accenting a mobile
+// card (left border, icon color, etc.) with the same status color as its badge.
+const colorMap = {
+  Pending: '#c9a227',
+  Responded: 'var(--blue)',
+  Won: 'var(--green)',
+  Lost: 'var(--red)',
+  'Follow Up': 'var(--purple)',
+  Connected: 'var(--green)',
+  Voicemail: '#c9a227',
+  'No Answer': 'var(--text3)',
+  Interested: 'var(--blue)',
+  'Not Interested': 'var(--red)',
+  admin: 'var(--accent)',
+  staff: 'var(--green)',
+}
+
+export function statusColor(label) {
+  return colorMap[label] || 'var(--border2)'
+}

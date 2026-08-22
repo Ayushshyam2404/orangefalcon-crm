@@ -41,6 +41,11 @@ function fmtAxis(n) {
   return `$${n}`
 }
 
+function truncateLabel(name) {
+  if (!name) return name
+  return name.length > 14 ? `${name.slice(0, 13)}…` : name
+}
+
 function StatCard({ label, value, sub, color, icon }) {
   return (
     <div className={styles.statCard} style={{ '--cc': color }}>
@@ -336,6 +341,7 @@ export default function RevenueAnalytics() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                   <XAxis
                     dataKey="name"
+                    tickFormatter={truncateLabel}
                     tick={{ fill: 'var(--text2)', fontSize: 11, fontWeight: 500 }}
                     angle={-35}
                     textAnchor="end"
@@ -450,6 +456,7 @@ export default function RevenueAnalytics() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                     <XAxis
                       dataKey="name"
+                      tickFormatter={truncateLabel}
                       tick={{ fill: 'var(--text2)', fontSize: 10 }}
                       angle={-35}
                       textAnchor="end"
@@ -486,6 +493,7 @@ export default function RevenueAnalytics() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
                     <XAxis
                       dataKey="name"
+                      tickFormatter={truncateLabel}
                       tick={{ fill: 'var(--text2)', fontSize: 10 }}
                       angle={-35}
                       textAnchor="end"
@@ -602,6 +610,84 @@ export default function RevenueAnalytics() {
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+
+              <div className={styles.mobileCards}>
+                {data.propertyStats.map((p, i) => {
+                  const share = totals.revenue > 0
+                    ? ((p.totalRevenue / totals.revenue) * 100).toFixed(1)
+                    : '0.0'
+                  const isTop = i === 0
+                  return (
+                    <div key={p.hotelId || i} className={`${styles.mCard} ${isTop ? styles.topRow : ''}`}>
+                      <div className={styles.mCardHead}>
+                        <div className={styles.propCell}>
+                          <span
+                            className={styles.propSwatch}
+                            style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
+                          />
+                          <div>
+                            <div className={styles.propName}>
+                              {p.hotelName}
+                              {isTop && <span className={styles.topBadge}>Top</span>}
+                            </div>
+                            {p.hotelCity && <div className={styles.propCity}>{p.hotelCity}</div>}
+                          </div>
+                        </div>
+                        <span className={`${styles.rank} ${i < 3 ? styles[`rank${i + 1}`] : ''}`}>
+                          {i + 1}
+                        </span>
+                      </div>
+                      <div className={styles.mCardStats}>
+                        <div className={styles.statItem}>
+                          <span>Groups</span>
+                          <strong>{p.totalGroups}</strong>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span>Room Nights</span>
+                          <strong>{(p.totalRoomNights || 0).toLocaleString()}</strong>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span>Avg Rate / Night</span>
+                          <strong>{p.avgRate ? `$${p.avgRate}` : '—'}</strong>
+                        </div>
+                        <div className={styles.statItem}>
+                          <span>Total Revenue</span>
+                          <strong className={styles.revenueVal}>{fmtRevenue(p.totalRevenue)}</strong>
+                        </div>
+                      </div>
+                      <div className={styles.shareRow}>
+                        <div className={styles.shareTrack}>
+                          <div
+                            className={styles.shareFill}
+                            style={{
+                              width: `${share}%`,
+                              background: `linear-gradient(90deg, ${CHART_COLORS[i % CHART_COLORS.length]}bb, ${CHART_COLORS[i % CHART_COLORS.length]})`,
+                            }}
+                          />
+                        </div>
+                        <span className={styles.sharePct}>{share}% of revenue</span>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                <div className={styles.mCard}>
+                  <div className={styles.mCardStats} style={{ marginTop: 0 }}>
+                    <div className={styles.statItem}>
+                      <span>Total Groups</span>
+                      <strong>{totals.groups}</strong>
+                    </div>
+                    <div className={styles.statItem}>
+                      <span>Total Room Nights</span>
+                      <strong>{totals.roomNights.toLocaleString()}</strong>
+                    </div>
+                    <div className={styles.statItem}>
+                      <span>Total Revenue</span>
+                      <strong className={styles.revenueVal}>{fmtRevenue(totals.revenue)}</strong>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

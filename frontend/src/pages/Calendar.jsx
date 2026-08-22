@@ -104,7 +104,7 @@ export default function Calendar() {
   const todayStr = toDateStr(today)
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div>
       <div className={styles.pageHeader}>
         <div>
           <h1 style={{ margin: '0 0 4px', fontSize: '28px', fontWeight: 700, letterSpacing: '-0.5px' }}>Calendar</h1>

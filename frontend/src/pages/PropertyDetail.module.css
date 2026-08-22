@@ -1,0 +1,124 @@
+.backBtn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--text2);
+  padding: 0; margin-bottom: 16px; transition: color 0.15s;
+}
+.backBtn:hover { color: var(--accent); }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 220px;
+  display: flex; align-items: flex-end;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.heroPhoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.heroNoPhoto {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  color: var(--text3);
+  background: repeating-linear-gradient(135deg, var(--surface2), var(--surface2) 12px, var(--surface3) 12px, var(--surface3) 24px);
+}
+.heroNoPhoto span { font-size: 12px; font-weight: 600; }
+.heroOverlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.75) 100%);
+}
+.heroContent { position: relative; padding: 24px 28px; width: 100%; }
+.heroTags { display: flex; gap: 8px; margin-bottom: 10px; }
+.tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 20px; backdrop-filter: blur(6px);
+}
+.tagSales { background: rgba(255,107,0,0.85); color: white; }
+.tagRep { background: rgba(139,92,246,0.85); color: white; }
+.heroName { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.4); line-height: 1.15; }
+.heroCity { display: flex; align-items: center; gap: 6px; font-size: 13px; color: rgba(255,255,255,0.85); margin-top: 6px; }
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+.section {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px;
+}
+.sectionHead { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.sectionHead h2 { font-size: 16px; font-weight: 700; }
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.statCard {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+}
+.statIcon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.statValue { font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.1; }
+.statLabel { font-size: 10.5px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+
+.chipRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.chipRowLabel { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.4px; margin-right: 4px; }
+.statusChip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600; color: var(--c);
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 20px; padding: 4px 10px;
+}
+.statusChip strong { font-weight: 800; }
+
+.subSection { margin-top: 18px; }
+.subSection h3 { font-size: 12.5px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 10px; }
+
+.miniList { display: flex; flex-direction: column; gap: 6px; }
+.miniRow {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+}
+.miniRowMain { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.miniRowName { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.miniRowSub { font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.miniRowEnd { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.miniRowPrice { font-size: 12.5px; font-weight: 700; color: var(--green); }
+
+.typeTag {
+  font-size: 10px; font-weight: 700; color: white; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 12px; letter-spacing: 0.3px;
+}
+
+.scoreDot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  font-size: 12px; font-weight: 700; color: var(--c);
+  background: var(--surface3);
+  border: 1.5px solid var(--c);
+}
+
+.loading, .empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: 60px 20px; color: var(--text3); text-align: center;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.backLink { color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none; }
+.backLink:hover { text-decoration: underline; }
+
+/* ─── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .hero { min-height: 170px; }
+  .heroContent { padding: 16px 16px 18px; }
+  .heroName { font-size: 22px; }
+  .section { padding: 14px; }
+  .statGrid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .statCard { padding: 10px; }
+  .statValue { font-size: 15px; }
+  .miniRow { flex-wrap: wrap; }
+  .miniRowSub { white-space: normal; }
+}

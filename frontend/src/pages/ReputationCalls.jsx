@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Badge } from '../components/Badge'
+import { Badge, statusColor } from '../components/Badge'
 import { Button } from '../components/Button'
 import { Modal, ModalActions } from '../components/Modal'
 import api from '../utils/api'
@@ -54,7 +54,7 @@ export default function ReputationCalls() {
   const [calls, setCalls] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [modal, setModal] = useState(null)
 
   const fetchCalls = async () => {
@@ -120,7 +120,7 @@ export default function ReputationCalls() {
           </div>
         </div>
 
-        <div className={styles.tableWrap}>
+        <div className={`${styles.tableWrap} ${styles.hasMobileCards}`}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -158,6 +158,43 @@ export default function ReputationCalls() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className={styles.mobileCards}>
+          {loading ? (
+            <div className={styles.mCardEmpty}>Loading...</div>
+          ) : calls.length === 0 ? (
+            <div className={styles.mCardEmpty}>No reputation calls logged yet.</div>
+          ) : calls.map(c => (
+            <div key={c._id} className={styles.mCard} style={{ '--accentColor': statusColor(c.outcome) }}>
+              <div className={styles.mCardTop}>
+                <div className={styles.mCardName}><span>{c.name}</span></div>
+                <Badge label={c.outcome} />
+              </div>
+              <div className={styles.mCardBody}>
+                {c.phone && (
+                  <div className={styles.mCardRow}>
+                    <Icon name="phone" size={13} />
+                    <a href={`tel:${c.phone}`}>{c.phone}</a>
+                  </div>
+                )}
+                <div className={styles.mCardRow}>
+                  <Icon name="clock" size={13} />
+                  <span>{fmtDate(c.createdAt)}</span>
+                  <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontSize: 11.5 }}>By {c.loggedBy?.name || '—'}</span>
+                </div>
+              </div>
+              {c.notes && <div className={styles.mCardNote}>{c.notes}</div>}
+              <div className={styles.mCardActions}>
+                <Button variant="secondary" size="sm" onClick={() => setModal(c)}>
+                  <Icon name="pen" size={11} /> Edit
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(c._id)}>
+                  <Icon name="trash" size={11} /> Delete
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

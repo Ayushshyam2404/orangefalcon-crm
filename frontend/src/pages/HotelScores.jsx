@@ -363,7 +363,7 @@ export default function HotelScores() {
       {/* Table view */}
       {view === 'table' && (
         <div className={styles.card}>
-          <div className={styles.tableWrap}>
+          <div className={`${styles.tableWrap} ${styles.hasMobileCards}`}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -401,6 +401,41 @@ export default function HotelScores() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className={styles.mobileCards}>
+            {loading ? (
+              <div className={styles.mCardEmpty}>Loading...</div>
+            ) : scores.length === 0 ? (
+              <div className={styles.mCardEmpty}>No scores logged yet.</div>
+            ) : scores.map(s => (
+              <div key={s._id} className={styles.mCard} style={{ '--accentColor': scoreColor(parseFloat(s.score)) }}>
+                <div className={styles.mCardTop}>
+                  <div className={styles.mCardName}><span>{s.hotel?.name || '—'}</span></div>
+                  <ScoreDot score={s.score} />
+                </div>
+                <div className={styles.mCardBody}>
+                  <div className={styles.mCardRow}>
+                    <Icon name="building" size={13} />
+                    <span>{s.hotel?.city || '—'}</span>
+                  </div>
+                  <div className={styles.mCardRow}>
+                    <Icon name="calendar" size={13} />
+                    <span>{fmtDate(s.date)}</span>
+                    <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontSize: 11.5 }}>By {s.createdBy?.name || '—'}</span>
+                  </div>
+                </div>
+                {s.notes && <div className={styles.mCardNote}>{s.notes}</div>}
+                <div className={styles.mCardActions}>
+                  <Button variant="secondary" size="sm" onClick={() => setModal(s)}>
+                    <Icon name="pen" size={11} /> Edit
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(s._id)}>
+                    <Icon name="trash" size={11} /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

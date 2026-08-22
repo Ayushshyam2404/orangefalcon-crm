@@ -209,6 +209,10 @@
   .statsGrid { grid-template-columns: repeat(2, 1fr); }
   .hotelGrid { grid-template-columns: 1fr; }
 }
+@media (max-width: 768px) {
+  .page { padding: 0; }
+  .header { flex-direction: column; gap: 12px; align-items: stretch; }
+}
 @media (max-width: 560px) {
   .statsGrid { grid-template-columns: 1fr 1fr; }
 }

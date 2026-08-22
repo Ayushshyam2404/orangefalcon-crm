@@ -91,7 +91,7 @@ export default function RFPsInConsideration() {
   const [rfps, setRfps] = useState([])
   const [availableRfps, setAvailableRfps] = useState([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [modal, setModal] = useState(null)
 
   const fetchRfps = async () => {
@@ -163,7 +163,7 @@ export default function RFPsInConsideration() {
           </div>
         </div>
 
-        <div className={styles.tableWrap}>
+        <div className={`${styles.tableWrap} ${styles.hasMobileCards}`}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -213,11 +213,58 @@ export default function RFPsInConsideration() {
             </tbody>
           </table>
         </div>
+
+        <div className={styles.mobileCards}>
+          {loading ? (
+            <div className={styles.mCardEmpty}>Loading...</div>
+          ) : rfps.length === 0 ? (
+            <div className={styles.mCardEmpty}>No RFPs found.</div>
+          ) : rfps.map(r => (
+            <div key={r._id} className={styles.mCard} style={{ '--accentColor': r.callDone ? 'var(--green)' : 'var(--border2)' }}>
+              <div className={styles.mCardTop}>
+                <div className={styles.mCardName}><span>{r.client}</span></div>
+                {r.callDone ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--green)', fontWeight: 700, fontSize: 11, whiteSpace: 'nowrap' }}>
+                    <Icon name="check" size={12} /> Call Done
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text3)', fontSize: 11, whiteSpace: 'nowrap' }}>No Call Yet</span>
+                )}
+              </div>
+              <div className={styles.mCardBody}>
+                <div className={styles.mCardRow}>
+                  <Icon name="building" size={13} />
+                  <span>{r.hotel?.name || '—'}</span>
+                </div>
+                <div className={styles.mCardRow}>
+                  <Icon name="calendar" size={13} />
+                  <span>{r.checkin || '—'}</span>
+                  <span style={{ color: 'var(--text3)' }}>·</span>
+                  <span>{r.numRooms ? `${r.numRooms} rooms` : '—'}</span>
+                  {r.rank && <span style={{ marginLeft: 'auto', color: 'var(--text3)' }}>Rank {r.rank}</span>}
+                </div>
+              </div>
+              {(r.emailsSent || r.followUpsDone || r.tradeGiven) && (
+                <div className={styles.mCardNote}>
+                  {r.emailsSent && <div>Email: {r.emailsSent}</div>}
+                  {r.followUpsDone && <div>Follow-up: {r.followUpsDone}</div>}
+                  {r.tradeGiven && <div>Rate/Trade: {r.tradeGiven}</div>}
+                </div>
+              )}
+              <div className={styles.mCardSub}>Owner: {r.addedBy?.name || '—'}</div>
+              <div className={styles.mCardActions}>
+                <Button variant="secondary" size="sm" onClick={() => setModal(r)}>
+                  <Icon name="pen" size={11} /> Edit
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {modal && (
-        <Modal 
-          title={modal === 'new' ? 'Log RFP in Consideration' : `Update Consideration - ${modal.client}`} 
+        <Modal
+          title={modal === 'new' ? 'Log RFP in Consideration' : `Update Consideration - ${modal.client}`}
           onClose={() => setModal(null)}
         >
           <RFPConsiderationForm 

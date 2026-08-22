@@ -197,7 +197,7 @@ export default function InboundLeads() {
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null) // null | 'new' | leadObject
   const [filterStatus, setFilterStatus] = useState('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [expandedId, setExpandedId] = useState(null)
 
   const loadLeads = async () => {
@@ -253,7 +253,7 @@ export default function InboundLeads() {
   }, {})
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div>
       {/* Header */}
       <div className={styles.pageHeader}>
         <div>

@@ -557,7 +557,7 @@ export default function UserManagement() {
           <p className={styles.pageSubtitle}>Attendance, hours &amp; leaves per employee</p>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div className={own.headerActions}>
           {/* View tabs */}
           <div className={own.viewTabs}>
             <button

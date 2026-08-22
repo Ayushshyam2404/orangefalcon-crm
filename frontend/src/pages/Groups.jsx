@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Modal } from '../components/Modal';
+import { Icon } from '../components/Icon';
 import styles from './Groups.module.css';
+import dataStyles from './DataPage.module.css';
 import { exportToExcel, formatGroups } from '../utils/exportToExcel';
 
 const Groups = () => {
@@ -12,7 +14,7 @@ const Groups = () => {
   const [editingId, setEditingId] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [filterHotel, setFilterHotel] = useState('all');
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState(() => new URLSearchParams(window.location.search).get('q') || '');
   const [formData, setFormData] = useState({
     groupName: '',
     hotel: '',
@@ -152,7 +154,7 @@ const Groups = () => {
         <div style={{ display: 'flex', gap: '8px' }}>
           <button
             onClick={() => exportToExcel('groups-export', 'Groups', formatGroups(groups))}
-            style={{ background: 'var(--surface)', color: 'var(--text1)', border: '1px solid var(--border)', padding: '10px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
           >
             Export Excel
           </button>
@@ -229,6 +231,52 @@ const Groups = () => {
           ))}
         </tbody>
       </table>
+
+      {/* Mobile card list — replaces the table on phones */}
+      <div className={dataStyles.mobileCards}>
+        {filteredGroups.length === 0 ? (
+          <div className={dataStyles.mCardEmpty}>No groups found.</div>
+        ) : filteredGroups.map((group) => {
+          const revenue = group.numRoomNights && group.rate ? group.numRoomNights * group.rate : null
+          const typeColor = group.type === 'guaranteed' ? '#ff6b6b' : '#51cf66'
+          return (
+            <div key={group._id} className={dataStyles.mCard} style={{ '--accentColor': typeColor }}>
+              <div className={dataStyles.mCardTop}>
+                <div className={dataStyles.mCardName}><span>{group.groupName}</span></div>
+                <span className={styles.badge} style={{ background: typeColor }}>{group.type}</span>
+              </div>
+              <div className={dataStyles.mCardBody}>
+                <div className={dataStyles.mCardRow}>
+                  <Icon name="building" size={13} />
+                  <span>{group.hotel ? group.hotel.name : 'N/A'}</span>
+                </div>
+                <div className={dataStyles.mCardRow}>
+                  <Icon name="calendar" size={13} />
+                  <span>{new Date(group.checkIn).toLocaleDateString()} → {new Date(group.checkOut).toLocaleDateString()}</span>
+                </div>
+                <div className={dataStyles.mCardRow}>
+                  <Icon name="users" size={13} />
+                  <span>{group.numRooms || 'N/A'} rooms · {group.numRoomNights || 'N/A'} nights · Room/Banquet: {group.roomBanquet}</span>
+                </div>
+                <div className={dataStyles.mCardRow}>
+                  <Icon name="dollar" size={13} />
+                  <span>{group.rate ? `$${group.rate}/night` : 'N/A'}</span>
+                  {revenue != null && (
+                    <strong style={{ marginLeft: 'auto', color: '#2ecc71' }}>
+                      ${revenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </strong>
+                  )}
+                </div>
+              </div>
+              <div className={dataStyles.mCardSub}>Owner: {group.loggedBy?.name || '—'}</div>
+              <div className={dataStyles.mCardActions}>
+                <button onClick={() => handleEdit(group)} className={styles.editBtn}>Edit</button>
+                <button onClick={() => handleDelete(group._id)} className={styles.deleteBtn}>Delete</button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
 
       {/* Modal */}
       {showModal && (

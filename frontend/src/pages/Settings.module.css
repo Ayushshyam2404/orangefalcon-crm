@@ -53,6 +53,9 @@
   .tabs { flex-wrap: wrap; }
   .tab { padding: 10px 14px; font-size: 13px; }
   .content { padding: 16px; }
+  .sectionHeader { flex-wrap: wrap; gap: 10px; }
+  /* Card list (see DataPage.module.css mobileCards) replaces the wide table on phones. */
+  .tableWrap { display: none; }
 }
 
 .sectionHeader {
@@ -85,6 +88,8 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
 }
+
+.tableWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .table {
   width: 100%;

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Badge } from '../components/Badge'
+import { Badge, statusColor } from '../components/Badge'
 import { Button } from '../components/Button'
 import { Modal, ModalActions } from '../components/Modal'
+import { PhotoUploadField } from '../components/PhotoUploadField'
 import api from '../utils/api'
 import styles from './DataPage.module.css'
 import { exportToExcel, formatRFPs } from '../utils/exportToExcel'
@@ -11,7 +12,7 @@ const STATUSES = ['Pending', 'Responded', 'Won', 'Lost', 'Follow Up']
 
 function HotelForm({ initial = {}, onSave, onCancel }) {
   const [form, setForm] = useState({
-    name: '', city: '',
+    name: '', city: '', photo: '',
     ...initial,
   })
   const [saving, setSaving] = useState(false)
@@ -27,6 +28,7 @@ function HotelForm({ initial = {}, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit}>
+      <PhotoUploadField value={form.photo} onChange={(v) => set('photo', v)} />
       <div className={styles.formGroup}>
         <label>Hotel Name</label>
         <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Grand Plaza Hotel" required />
@@ -132,7 +134,7 @@ export default function RFPs() {
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [modal, setModal] = useState(null) // null | 'new' | rfp object
   const [hotelModal, setHotelModal] = useState(null) // null | 'new' | hotel object
   const [user, setUser] = useState(null)
@@ -238,7 +240,7 @@ export default function RFPs() {
           </div>
         </div>
 
-        <div className={styles.tableWrap}>
+        <div className={`${styles.tableWrap} ${styles.hasMobileCards}`}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -284,6 +286,49 @@ export default function RFPs() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className={styles.mobileCards}>
+          {loading ? (
+            <div className={styles.mCardEmpty}>Loading...</div>
+          ) : rfps.length === 0 ? (
+            <div className={styles.mCardEmpty}>No RFPs found.</div>
+          ) : rfps.map(r => (
+            <div key={r._id} className={styles.mCard} style={{ '--accentColor': r.priority ? 'var(--yellow)' : statusColor(r.status) }}>
+              <div className={styles.mCardTop}>
+                <div className={styles.mCardName}>
+                  <button className={`${styles.starBtn} ${r.priority ? styles.starActive : ''}`} onClick={() => togglePriority(r)} title={r.priority ? 'Remove priority' : 'Mark priority'}>
+                    <Icon name={r.priority ? 'starFill' : 'star'} size={14} color={r.priority ? 'var(--yellow)' : 'var(--text3)'} />
+                  </button>
+                  <span>{r.client}</span>
+                </div>
+                <Badge label={r.status} />
+              </div>
+              <div className={styles.mCardBody}>
+                <div className={styles.mCardRow}>
+                  <Icon name="building" size={13} />
+                  <span>{r.hotel?.name || '—'}</span>
+                </div>
+                <div className={styles.mCardRow}>
+                  <Icon name="calendar" size={13} />
+                  <span>{r.checkin || '—'} → {r.checkout || '—'}</span>
+                </div>
+                <div className={styles.mCardRow}>
+                  <Icon name="dollar" size={13} />
+                  <span>{r.price ? `$${Number(r.price).toLocaleString()}` : '—'}</span>
+                  <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontSize: 11.5 }}>Added by {r.addedBy?.name || '—'}</span>
+                </div>
+              </div>
+              <div className={styles.mCardActions}>
+                <Button variant="secondary" size="sm" onClick={() => setModal(r)}>
+                  <Icon name="pen" size={11} /> Edit
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => handleDelete(r._id)}>
+                  <Icon name="trash" size={11} /> Delete
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

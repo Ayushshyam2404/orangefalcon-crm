@@ -54,6 +54,10 @@ export function Sidebar({ alertCount, isOpen, onClose, onOpenAttendance }) {
     { to: '/reputation-calls', label: 'Calls', icon: 'phone' },
   ]
 
+  const propertyItems = [
+    { to: '/properties', label: 'Manage Properties', icon: 'building' },
+  ]
+
   const adminItems = [
     { to: '/user-management', label: 'User Management', icon: 'users' },
     { to: '/settings', label: 'Settings', icon: 'settings' },
@@ -127,6 +131,18 @@ export function Sidebar({ alertCount, isOpen, onClose, onOpenAttendance }) {
 
         <div className={styles.navLabel} style={{ marginTop: 16 }}>Reputation</div>
         {reputationItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
+          >
+            <Icon name={item.icon} size={16} />
+            {item.label}
+          </NavLink>
+        ))}
+
+        <div className={styles.navLabel} style={{ marginTop: 16 }}>Properties</div>
+        {propertyItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

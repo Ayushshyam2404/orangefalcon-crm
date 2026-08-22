@@ -20,6 +20,8 @@ const hotelScoreRoutes = require('./routes/hotelScores');
 const reportRoutes = require('./routes/report');
 const backupRoutes = require('./routes/backup');
 const externalRoutes = require('./routes/external');
+const searchRoutes = require('./routes/search');
+const propertiesRoutes = require('./routes/properties');
 
 const app = express();
 
@@ -51,6 +53,8 @@ app.use('/api/company-settings', companySettingsRoutes);
 app.use('/api/hotel-scores', hotelScoreRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/properties', propertiesRoutes);
 
 app.get('/api/health', (req, res) =>
   res.json({ status: 'OK', message: 'Orange Falcon CRM API running' })

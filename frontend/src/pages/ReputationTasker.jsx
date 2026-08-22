@@ -355,7 +355,7 @@ export default function ReputationTasker() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [editModal, setEditModal] = useState(null)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [tab, setTab] = useState('tasks')
   const [routineItems, setRoutineItems] = useState([])
 
@@ -404,7 +404,7 @@ export default function ReputationTasker() {
   const openCount = tasks.filter(t => t.status !== 'completed').length
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div>
       <div className={styles.pageHeader}>
         <div>
           <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: '700', letterSpacing: '-0.5px' }}>Reputation Tasks</h1>

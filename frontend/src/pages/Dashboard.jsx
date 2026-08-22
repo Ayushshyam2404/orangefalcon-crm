@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Icon } from '../components/Icon'
 import { Badge } from '../components/Badge'
+import { GlobalSearch } from '../components/GlobalSearch'
 import api from '../utils/api'
 import { fetchTasksByDay } from '../utils/taskApi'
 import styles from './Dashboard.module.css'
@@ -66,6 +67,7 @@ export default function Dashboard() {
           <h1 className={styles.title}>Dashboard</h1>
           <p className={styles.subtitle}>{greeting}, {user?.name}</p>
         </div>
+        <GlobalSearch />
       </div>
 
       <div className={styles.statsGrid}>

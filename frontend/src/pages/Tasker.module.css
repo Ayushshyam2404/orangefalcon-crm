@@ -713,13 +713,18 @@
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .pageHeader { flex-direction: column; gap: 12px; align-items: stretch; }
+  .pageHeader > div:last-child { align-self: flex-start; flex-wrap: wrap; }
   .toolbar { flex-wrap: wrap; }
   .tasksGrid { grid-template-columns: 1fr; }
-  .taskRowMeta { display: none; }
+  .taskRowMain { flex-wrap: wrap; }
+  .taskRowName { flex: 1 1 auto; min-width: 0; }
+  .statusPill { display: none; }
+  .taskRowMeta { flex: 1 1 100%; justify-content: flex-end; order: 3; margin-top: 2px; }
   .taskRowActions { opacity: 1; }
   .dateNav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
   .dateNavLabel { font-size: 13px; }
   .routineProgressRow { flex-wrap: wrap; }
+  .noteToggle { padding: 7px 10px; }
 }
 
 

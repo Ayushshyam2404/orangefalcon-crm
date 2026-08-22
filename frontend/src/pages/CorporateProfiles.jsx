@@ -145,7 +145,7 @@ export default function CorporateProfiles() {
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null) // null | 'new' | profileObject
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [expandedId, setExpandedId] = useState(null)
   const [revealCC, setRevealCC] = useState({}) // id → bool
 
@@ -161,7 +161,7 @@ export default function CorporateProfiles() {
     }
   }
 
-  useEffect(() => { loadProfiles() }, [])
+  useEffect(() => { loadProfiles(search) }, [])
 
   const handleSearch = (e) => {
     if (e.key === 'Enter') loadProfiles(search)
@@ -193,7 +193,7 @@ export default function CorporateProfiles() {
   const letters = Object.keys(grouped).sort()
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div>
       {/* Header */}
       <div className={styles.pageHeader}>
         <div>

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { Modal } from '../components/Modal';
+import { Icon } from '../components/Icon';
+import { PhotoUploadField } from '../components/PhotoUploadField';
 import styles from './Settings.module.css';
+import dataStyles from './DataPage.module.css';
 
 function useTheme() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -25,7 +28,7 @@ const Settings = () => {
   const [modalType, setModalType] = useState('');
   const [editingId, setEditingId] = useState(null);
 
-  const [hotelForm, setHotelForm] = useState({ name: '', city: '', category: 'sales' });
+  const [hotelForm, setHotelForm] = useState({ name: '', city: '', category: 'sales', photo: '' });
   const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'staff', title: '' });
   const [credentialsInfo, setCredentialsInfo] = useState(null); // { username, tempPassword }
 
@@ -232,7 +235,7 @@ const Settings = () => {
       setHotels(salesRes.data);
       setRepHotels(repRes.data);
       setShowModal(false);
-      setHotelForm({ name: '', city: '', category: 'sales' });
+      setHotelForm({ name: '', city: '', category: 'sales', photo: '' });
       setEditingId(null);
     } catch (err) {
       console.error('Error saving hotel:', err);
@@ -274,7 +277,7 @@ const Settings = () => {
 
   // Handle edit hotel
   const handleEditHotel = (hotel) => {
-    setHotelForm({ name: hotel.name, city: hotel.city, category: hotel.category || 'sales' });
+    setHotelForm({ name: hotel.name, city: hotel.city, category: hotel.category || 'sales', photo: hotel.photo || '' });
     setEditingId(hotel._id);
     setModalType('hotel');
     setShowModal(true);
@@ -374,7 +377,7 @@ const Settings = () => {
             <h3>Manage Sales Hotels</h3>
             <button
               onClick={() => {
-                setHotelForm({ name: '', city: '', category: 'sales' });
+                setHotelForm({ name: '', city: '', category: 'sales', photo: '' });
                 setEditingId(null);
                 setModalType('hotel');
                 setShowModal(true);
@@ -385,6 +388,7 @@ const Settings = () => {
             </button>
           </div>
 
+          <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -410,6 +414,29 @@ const Settings = () => {
               ))}
             </tbody>
           </table>
+          </div>
+
+          <div className={dataStyles.mobileCards}>
+            {hotels.length === 0 ? (
+              <div className={dataStyles.mCardEmpty}>No hotels added yet.</div>
+            ) : hotels.map((hotel) => (
+              <div key={hotel._id} className={dataStyles.mCard}>
+                <div className={dataStyles.mCardTop}>
+                  <div className={dataStyles.mCardName}><span>{hotel.name}</span></div>
+                </div>
+                <div className={dataStyles.mCardBody}>
+                  <div className={dataStyles.mCardRow}>
+                    <Icon name="building" size={13} />
+                    <span>{hotel.city}</span>
+                  </div>
+                </div>
+                <div className={dataStyles.mCardActions}>
+                  <button onClick={() => handleEditHotel(hotel)} className={styles.editBtn}>Edit</button>
+                  <button onClick={() => handleDeleteHotel(hotel._id)} className={styles.deleteBtn}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -420,7 +447,7 @@ const Settings = () => {
             <h3>Manage Reputation Hotels</h3>
             <button
               onClick={() => {
-                setHotelForm({ name: '', city: '', category: 'reputation' });
+                setHotelForm({ name: '', city: '', category: 'reputation', photo: '' });
                 setEditingId(null);
                 setModalType('hotel');
                 setShowModal(true);
@@ -431,6 +458,7 @@ const Settings = () => {
             </button>
           </div>
 
+          <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -458,6 +486,29 @@ const Settings = () => {
               ))}
             </tbody>
           </table>
+          </div>
+
+          <div className={dataStyles.mobileCards}>
+            {repHotels.length === 0 ? (
+              <div className={dataStyles.mCardEmpty}>No reputation hotels added yet.</div>
+            ) : repHotels.map((hotel) => (
+              <div key={hotel._id} className={dataStyles.mCard}>
+                <div className={dataStyles.mCardTop}>
+                  <div className={dataStyles.mCardName}><span>{hotel.name}</span></div>
+                </div>
+                <div className={dataStyles.mCardBody}>
+                  <div className={dataStyles.mCardRow}>
+                    <Icon name="building" size={13} />
+                    <span>{hotel.city}</span>
+                  </div>
+                </div>
+                <div className={dataStyles.mCardActions}>
+                  <button onClick={() => handleEditHotel(hotel)} className={styles.editBtn}>Edit</button>
+                  <button onClick={() => handleDeleteHotel(hotel._id)} className={styles.deleteBtn}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -479,6 +530,7 @@ const Settings = () => {
             </button>
           </div>
 
+          <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -512,6 +564,30 @@ const Settings = () => {
               ))}
             </tbody>
           </table>
+          </div>
+
+          <div className={dataStyles.mobileCards}>
+            {users.length === 0 ? (
+              <div className={dataStyles.mCardEmpty}>No users yet.</div>
+            ) : users.map((user) => (
+              <div key={user._id} className={dataStyles.mCard} style={{ '--accentColor': user.role === 'admin' ? 'var(--accent)' : 'var(--green)' }}>
+                <div className={dataStyles.mCardTop}>
+                  <div className={dataStyles.mCardName}><span>{user.name}</span></div>
+                  <span className={styles.role} data-role={user.role}>{user.role}</span>
+                </div>
+                <div className={dataStyles.mCardBody}>
+                  <div className={dataStyles.mCardRow}>
+                    <Icon name="useradd" size={13} />
+                    <span>@{user.username}{user.title ? ` · ${user.title}` : ''}</span>
+                  </div>
+                </div>
+                <div className={dataStyles.mCardActions}>
+                  <button onClick={() => handleEditUser(user)} className={styles.editBtn}>Edit</button>
+                  <button onClick={() => handleDeleteUser(user._id)} className={styles.deleteBtn}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -864,6 +940,7 @@ const Settings = () => {
           <form onSubmit={modalType === 'hotel' ? handleHotelSubmit : handleUserSubmit} className={styles.form}>
             {modalType === 'hotel' ? (
               <>
+                <PhotoUploadField value={hotelForm.photo} onChange={(v) => setHotelForm({ ...hotelForm, photo: v })} />
                 <input
                   type="text"
                   placeholder="Hotel Name *"

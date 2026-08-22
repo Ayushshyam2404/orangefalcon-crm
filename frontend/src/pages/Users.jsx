@@ -109,7 +109,7 @@ export default function Users() {
       </div>
 
       <div className={styles.card}>
-        <div className={styles.tableWrap}>
+        <div className={`${styles.tableWrap} ${styles.hasMobileCards}`}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -148,6 +148,47 @@ export default function Users() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className={styles.mobileCards}>
+          {loading ? (
+            <div className={styles.mCardEmpty}>Loading...</div>
+          ) : users.map(u => (
+            <div key={u._id} className={styles.mCard} style={{ '--accentColor': u.online ? 'var(--green)' : 'var(--border2)' }}>
+              <div className={styles.mCardTop}>
+                <div className={styles.mCardName}>
+                  <span>{u.name}</span>
+                  {u._id === me?._id && <span className={styles.youTag}>you</span>}
+                </div>
+                <Badge label={u.role} />
+              </div>
+              <div className={styles.mCardBody}>
+                <div className={styles.mCardRow}>
+                  <Icon name="useradd" size={13} />
+                  <span>@{u.username}{u.title ? ` · ${u.title}` : ''}</span>
+                </div>
+                <div className={styles.mCardRow}>
+                  <span className={u.online ? styles.dotOnline : styles.dotOffline} />
+                  <span>{u.online ? 'Online' : 'Offline'}</span>
+                  <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>{formatSecs(u.sessionSeconds || 0)} today</span>
+                </div>
+                <div className={styles.mCardRow}>
+                  <Icon name="clock" size={13} />
+                  <span>Last login: {fmtDate(u.lastLogin)}</span>
+                </div>
+              </div>
+              <div className={styles.mCardActions}>
+                <Button variant="secondary" size="sm" onClick={() => { setError(''); setModal(u); }}>
+                  <Icon name="pen" size={11} /> Edit
+                </Button>
+                {u._id !== me?._id && (
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(u._id)}>
+                    <Icon name="trash" size={11} /> Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

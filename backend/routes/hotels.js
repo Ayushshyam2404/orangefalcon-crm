@@ -29,7 +29,7 @@ router.get('/', protect, async (req, res) => {
 // POST /api/hotels - create hotel (admin only)
 router.post('/', protect, adminOnly, async (req, res) => {
   try {
-    const { name, city, category } = req.body;
+    const { name, city, category, photo } = req.body;
     if (!name || !city) {
       return res.status(400).json({ message: 'Hotel name and city are required' });
     }
@@ -38,6 +38,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
       name,
       city,
       category: category || 'sales',
+      photo: photo || '',
       createdBy: req.user._id,
     });
     const populated = await hotel.populate('createdBy', 'name username');

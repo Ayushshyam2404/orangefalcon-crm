@@ -21,7 +21,7 @@
   align-items: center;
   gap: 2px;
   padding: 12px 10px;
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
@@ -66,7 +66,7 @@
 }
 
 .leadCard {
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
@@ -94,7 +94,7 @@
 .leadName {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text1);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -132,7 +132,7 @@
 }
 
 .contactChip:hover {
-  color: var(--text1);
+  color: var(--text);
 }
 
 .leadRight {
@@ -187,7 +187,7 @@
 }
 
 .iconBtn:hover {
-  color: var(--text1);
+  color: var(--text);
   border-color: var(--text3);
 }
 
@@ -226,7 +226,7 @@
 
 .detailValue {
   font-size: 13px;
-  color: var(--text1);
+  color: var(--text);
 }
 
 /* Form */
@@ -312,10 +312,16 @@
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .pageHeader { flex-direction: column; gap: 12px; align-items: stretch; }
+  .pageHeader > div:last-child { align-self: flex-start; flex-wrap: wrap; }
   .statusStrips { gap: 6px; }
   .statusStrip { min-width: 60px; padding: 10px 6px; }
   .stripCount { font-size: 18px; }
   .formRow { grid-template-columns: 1fr; }
-  .leadMiddle { display: none; }
+  .leadMiddle { flex: 1 1 100%; }
   .cardActions { opacity: 1; }
+  .leadCardTop { flex-wrap: wrap; gap: 10px; }
+  .leadLeft { flex: 1 1 100%; }
+  .leadName, .leadCompany { white-space: normal; }
+  .leadRight { flex: 1 1 100%; justify-content: space-between; }
+  .detailGrid { grid-template-columns: 1fr 1fr; }
 }

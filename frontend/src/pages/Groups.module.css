@@ -278,10 +278,12 @@
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .header { flex-direction: column; gap: 10px; align-items: stretch; }
+  .header > div:last-child { align-self: flex-start; flex-wrap: wrap; }
   .header h2 { font-size: 22px; }
   .filters { flex-direction: column; padding: 12px; gap: 8px; }
   .searchInput { min-width: unset; width: 100%; }
   .filterSelect { width: 100%; }
   .formRow { grid-template-columns: 1fr; }
-  .table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Card list (see mobileCards below) replaces the wide table on phones. */
+  .table { display: none; }
 }

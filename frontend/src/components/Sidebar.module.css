@@ -246,9 +246,13 @@
     transform: translateX(-100%);
     z-index: 200;
     box-shadow: none;
+    width: min(300px, 84vw);
   }
   .sidebar.open {
     transform: translateX(0);
     box-shadow: 4px 0 40px rgba(0, 0, 0, 0.4);
   }
+  .navItem { padding: 11px 10px; font-size: 14px; }
+  .clockBtn { padding: 10px 4px; font-size: 11px; }
+  .logoutBtn { padding: 8px; }
 }

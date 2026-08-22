@@ -5,6 +5,7 @@ const hotelSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     city: { type: String, required: true, trim: true },
     category: { type: String, enum: ['sales', 'reputation'], default: 'sales' },
+    photo: { type: String, default: '' }, // base64 data URI, shown on the property snapshot
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
