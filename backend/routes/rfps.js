@@ -7,11 +7,17 @@ const router = express.Router();
 // GET /api/rfps - get all RFPs
 router.get('/', protect, async (req, res) => {
   try {
-    const { status, priority, search, consideration, all } = req.query;
+    const { status, priority, search, consideration, all, hotel } = req.query;
     let filter = {};
     if (status && status !== 'all') filter.status = status;
     if (priority === 'true') filter.priority = true;
     if (search) filter.client = { $regex: search, $options: 'i' };
+    if (hotel && hotel !== 'all') {
+      if (!RFP.db.base.Types.ObjectId.isValid(hotel)) {
+        return res.status(400).json({ message: 'Invalid hotel filter' });
+      }
+      filter.hotel = hotel;
+    }
     // Only apply consideration filter when explicitly requested (not when fetching all for dashboard)
     if (all !== 'true') {
       if (consideration === 'true') filter.inConsideration = true;

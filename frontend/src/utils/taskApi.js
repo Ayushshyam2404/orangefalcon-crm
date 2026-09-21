@@ -6,8 +6,15 @@ export const fetchTasks = (params = {}) => {
 }
 
 // Get tasks for a specific day
-export const fetchTasksByDay = (date) => {
-  return api.get(`/tasks/day/${date}`)
+export const fetchTasksByDay = (date, params = {}) => {
+  return api.get(`/tasks/day/${date}`, { params })
+}
+
+export const completeTasksForDay = (data) => api.put('/tasks/complete-day', data)
+
+// Get task completion history for a date range
+export const fetchTaskHistory = (params) => {
+  return api.get('/tasks/history', { params })
 }
 
 // Create a new task
@@ -40,4 +47,3 @@ export const fetchRoutines = (category) => api.get('/routines', { params: catego
 export const createRoutine = (data) => api.post('/routines', data)
 export const updateRoutine = (id, data) => api.put(`/routines/${id}`, data)
 export const deleteRoutine = (id) => api.delete(`/routines/${id}`)
-

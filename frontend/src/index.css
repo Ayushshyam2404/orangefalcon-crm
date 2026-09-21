@@ -46,6 +46,34 @@
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.18);
 }
 
+/* Optional per-user wallpaper. The saved image tone switches the CRM's text
+   and glass surfaces automatically so pages remain readable. */
+html[data-wallpaper="true"][data-wallpaper-tone="dark"] {
+  --bg: #090a0f;
+  --surface: rgba(14, 15, 22, 0.88);
+  --surface2: rgba(25, 26, 36, 0.88);
+  --surface3: rgba(35, 36, 49, 0.9);
+  --border: rgba(255, 255, 255, 0.11);
+  --border2: rgba(255, 255, 255, 0.18);
+  --text: #f7f7fb;
+  --text2: #b2b2c3;
+  --text3: #77778c;
+  --wallpaper-overlay: rgba(4, 5, 10, 0.42);
+}
+
+html[data-wallpaper="true"][data-wallpaper-tone="light"] {
+  --bg: #eef0f4;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface2: rgba(244, 245, 249, 0.9);
+  --surface3: rgba(230, 232, 240, 0.92);
+  --border: rgba(20, 24, 36, 0.11);
+  --border2: rgba(20, 24, 36, 0.18);
+  --text: #11131a;
+  --text2: #4e5261;
+  --text3: #858a9a;
+  --wallpaper-overlay: rgba(255, 255, 255, 0.25);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -58,6 +86,19 @@ body {
   color: var(--text);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+html[data-wallpaper="true"] body {
+  background-color: var(--bg);
+  background-image: linear-gradient(var(--wallpaper-overlay), var(--wallpaper-overlay)), var(--wallpaper-image);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+html[data-wallpaper="true"] .appMain {
+  background: transparent;
 }
 
 button {

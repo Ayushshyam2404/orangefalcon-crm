@@ -134,6 +134,7 @@ export default function RFPs() {
   const [hotels, setHotels] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [selectedHotelId, setSelectedHotelId] = useState(() => localStorage.getItem('rfp-selected-hotel') || 'all')
   const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [modal, setModal] = useState(null) // null | 'new' | rfp object
   const [hotelModal, setHotelModal] = useState(null) // null | 'new' | hotel object
@@ -144,6 +145,7 @@ export default function RFPs() {
     if (filter !== 'all' && filter !== 'priority') params.status = filter
     if (filter === 'priority') params.priority = true
     if (search) params.search = search
+    if (selectedHotelId !== 'all') params.hotel = selectedHotelId
     // Only show RFPs that are NOT in consideration
     params.consideration = 'false'
     const { data } = await api.get('/rfps', { params })
@@ -153,6 +155,10 @@ export default function RFPs() {
   const fetchHotels = async () => {
     const { data } = await api.get('/hotels', { params: { category: 'sales' } })
     setHotels(data)
+    if (selectedHotelId !== 'all' && !data.some(hotel => hotel._id === selectedHotelId)) {
+      setSelectedHotelId('all')
+      localStorage.setItem('rfp-selected-hotel', 'all')
+    }
     setLoading(false)
   }
 
@@ -161,8 +167,14 @@ export default function RFPs() {
     setUser(data)
   }
 
-  useEffect(() => { fetchUser(); fetchHotels(); fetchRfps() }, [])
-  useEffect(() => { fetchRfps() }, [filter, search])
+  useEffect(() => { fetchUser(); fetchHotels() }, [])
+  useEffect(() => { fetchRfps() }, [filter, search, selectedHotelId])
+
+  const selectHotel = hotelId => {
+    setSelectedHotelId(hotelId)
+    localStorage.setItem('rfp-selected-hotel', hotelId)
+  }
+  const selectedHotel = hotels.find(hotel => hotel._id === selectedHotelId)
 
   const handleSave = async (form) => {
     if (modal?._id) {
@@ -208,7 +220,7 @@ export default function RFPs() {
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>RFP Tracker</h1>
-          <p className={styles.pageSubtitle}>Manage all hotel RFPs</p>
+          <p className={styles.pageSubtitle}>{selectedHotel ? `Managing RFPs for ${selectedHotel.name}` : 'Manage RFPs property by property'}</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {user?.role === 'admin' && (
@@ -231,6 +243,16 @@ export default function RFPs() {
             <Icon name="search" size={13} color="var(--text3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
             <input className={styles.searchInput} placeholder="Search RFPs..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <select
+            className={styles.searchInput}
+            style={{ width: 'auto', minWidth: 250, flex: '0 1 340px' }}
+            value={selectedHotelId}
+            onChange={event => selectHotel(event.target.value)}
+            aria-label="Filter RFPs by hotel"
+          >
+            <option value="all">All hotels</option>
+            {hotels.map(hotel => <option key={hotel._id} value={hotel._id}>{hotel.name}{hotel.city ? ` — ${hotel.city}` : ''}</option>)}
+          </select>
           <div className={styles.filterRow}>
             {filters.map(f => (
               <button key={f} className={`${styles.filterBtn} ${filter === f ? styles.active : ''}`} onClick={() => setFilter(f)}>
@@ -259,7 +281,7 @@ export default function RFPs() {
               {loading ? (
                 <tr><td colSpan={9} className={styles.emptyCell}>Loading...</td></tr>
               ) : rfps.length === 0 ? (
-                <tr><td colSpan={9} className={styles.emptyCell}>No RFPs found.</td></tr>
+                <tr><td colSpan={9} className={styles.emptyCell}>{selectedHotel ? `No RFPs for ${selectedHotel.name}.` : 'No RFPs found.'}</td></tr>
               ) : rfps.map(r => (
                 <tr key={r._id} style={r.priority ? { background: 'rgba(241,196,15,0.03)' } : {}}>
                   <td>
@@ -292,7 +314,7 @@ export default function RFPs() {
           {loading ? (
             <div className={styles.mCardEmpty}>Loading...</div>
           ) : rfps.length === 0 ? (
-            <div className={styles.mCardEmpty}>No RFPs found.</div>
+            <div className={styles.mCardEmpty}>{selectedHotel ? `No RFPs for ${selectedHotel.name}.` : 'No RFPs found.'}</div>
           ) : rfps.map(r => (
             <div key={r._id} className={styles.mCard} style={{ '--accentColor': r.priority ? 'var(--yellow)' : statusColor(r.status) }}>
               <div className={styles.mCardTop}>
@@ -334,7 +356,7 @@ export default function RFPs() {
 
       {modal && (
         <Modal title={modal === 'new' ? 'New RFP' : 'Edit RFP'} onClose={() => setModal(null)}>
-          <RFPForm initial={modal === 'new' ? {} : modal} hotels={hotels} onSave={handleSave} onCancel={() => setModal(null)} />
+          <RFPForm initial={modal === 'new' ? (selectedHotel ? { hotel: selectedHotel._id } : {}) : modal} hotels={hotels} onSave={handleSave} onCancel={() => setModal(null)} />
         </Modal>
       )}
 

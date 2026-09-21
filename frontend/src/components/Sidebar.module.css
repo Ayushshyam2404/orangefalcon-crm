@@ -8,6 +8,7 @@
   flex-direction: column;
   z-index: 100;
   transition: transform 0.27s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(18px);
 }
 
 .header {

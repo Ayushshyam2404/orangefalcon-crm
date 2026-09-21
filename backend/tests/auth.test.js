@@ -92,6 +92,32 @@ describe('GET /api/auth/me', () => {
   });
 });
 
+describe('PUT /api/auth/profile — wallpaper', () => {
+  it('stores a private wallpaper and returns it to its owner', async () => {
+    const user = await createStaffUser({ username: 'wallpaperstaff' });
+    const wallpaper = 'data:image/jpeg;base64,dGVzdC13YWxscGFwZXI=';
+    const update = await request(app)
+      .put('/api/auth/profile')
+      .set(authHeader(user._id))
+      .send({ wallpaper, wallpaperTone: 'light' });
+
+    expect(update.status).toBe(200);
+    expect(update.body).toMatchObject({ wallpaper, wallpaperTone: 'light' });
+
+    const me = await request(app).get('/api/auth/me').set(authHeader(user._id));
+    expect(me.body).toMatchObject({ wallpaper, wallpaperTone: 'light' });
+  });
+
+  it('rejects an invalid wallpaper contrast value', async () => {
+    const user = await createStaffUser({ username: 'badwallpaperstaff' });
+    const res = await request(app)
+      .put('/api/auth/profile')
+      .set(authHeader(user._id))
+      .send({ wallpaperTone: 'neon' });
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('POST /api/auth/logout', () => {
   it('returns 401 without token', async () => {
     const res = await request(app).post('/api/auth/logout');

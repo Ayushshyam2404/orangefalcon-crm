@@ -65,6 +65,20 @@ describe('GET /api/rfps', () => {
     expect(res.body).toHaveLength(1);
     expect(res.body[0].client).toBe('Won One');
   });
+
+  it('filters RFPs by hotel', async () => {
+    const otherHotel = await Hotel.create({ name: 'Other RFP Hotel', city: 'Boston', createdBy: admin._id });
+    await RFP.create({ client: 'Chicago Client', hotel: hotel._id, addedBy: admin._id });
+    await RFP.create({ client: 'Boston Client', hotel: otherHotel._id, addedBy: admin._id });
+
+    const res = await request(app)
+      .get(`/api/rfps?hotel=${otherHotel._id}`)
+      .set(authHeader(admin._id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].client).toBe('Boston Client');
+  });
 });
 
 // ─── POST /api/rfps ───────────────────────────────────────────────────────────

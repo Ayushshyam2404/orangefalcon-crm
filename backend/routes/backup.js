@@ -33,7 +33,7 @@ router.get('/export', async (req, res) => {
       hotelScores, announcements, attendanceLogs, corporateProfiles,
       companySettings, leaveRequests, routineItems,
     ] = await Promise.all([
-      User.find().lean(),
+      User.find().select('+wallpaper').lean(),
       Hotel.find().lean(),
       RFP.find().lean(),
       Call.find().lean(),

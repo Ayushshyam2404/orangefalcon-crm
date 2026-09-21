@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { formatEasternDateTime } from './easternTime'
 
 /**
  * Export an array of row objects to a styled .xlsx file.
@@ -66,11 +67,105 @@ export function formatCalls(calls) {
   return calls.map(c => ({
     'Name': c.name || '',
     'Phone': c.phone || '',
+    'Hotel': c.hotel?.name || '',
+    'Status': c.status === 'pending' ? 'Ready to call' : 'Completed',
     'Outcome': c.outcome || '',
     'Notes': c.notes || '',
+    'Follow-Up Done': c.status === 'completed' ? (c.followUpDone === true ? 'Yes' : c.followUpDone === false ? 'No' : 'Not recorded') : '',
     'Logged By': c.loggedBy?.name || '',
-    'Created': c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '',
+    'Called At (Eastern Time)': c.calledAt ? formatEasternDateTime(c.calledAt) : '',
+    'Imported By': c.importedBy?.name || '',
+    'Added (Eastern Time)': c.createdAt ? formatEasternDateTime(c.createdAt) : '',
   }))
+}
+
+/** Download one hotel-specific workbook so staff only enter name and phone. */
+export function downloadLeadTemplate(category, hotel) {
+  if (!hotel) throw new Error('Choose a hotel before downloading its template.')
+  const label = category === 'reputation' ? 'Reputation' : 'Sales'
+  const leads = XLSX.utils.aoa_to_sheet([
+    ['Lead Name', 'Phone Number'],
+  ])
+  leads['!cols'] = [{ wch: 32 }, { wch: 22 }]
+  leads['!autofilter'] = { ref: 'A1:B1' }
+
+  const instructions = XLSX.utils.aoa_to_sheet([
+    [`${label} Call Lead Import — ${hotel.name}`],
+    ['How to use'],
+    ['1. Enter one lead per row on the Leads sheet.'],
+    ['2. Enter only the lead name and phone number; the hotel is already locked into this workbook.'],
+    ['3. Keep phone numbers as text so leading zeroes and + country codes are preserved.'],
+    ['4. Return to the CRM, click Import leads, and select this completed file.'],
+    ['Required fields'],
+    ['Lead Name, Phone Number'],
+  ])
+  instructions['!cols'] = [{ wch: 88 }]
+
+  const templateInfo = XLSX.utils.aoa_to_sheet([
+    ['Hotel Name', hotel.name],
+    ['Hotel ID', hotel._id || ''],
+    ['City', hotel.city || ''],
+    ['Category', category],
+  ])
+  templateInfo['!cols'] = [{ wch: 18 }, { wch: 48 }]
+
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, leads, 'Leads')
+  XLSX.utils.book_append_sheet(workbook, templateInfo, 'Template Info')
+  XLSX.utils.book_append_sheet(workbook, instructions, 'Instructions')
+  const safeHotel = hotel.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'hotel'
+  XLSX.writeFile(workbook, `${safeHotel}-${category}-call-leads.xlsx`)
+}
+
+const HEADER_ALIASES = {
+  name: ['leadname', 'name', 'prospectname', 'contactname'],
+  phone: ['phonenumber', 'phone', 'telephone', 'mobile', 'mobilenumber'],
+  hotel: ['hotel', 'hotelname', 'property', 'propertyname'],
+}
+
+const normalizeHeader = value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/** Read .xlsx/.xls/.csv rows and normalize common header names for the API. */
+export async function readLeadImportFile(file) {
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' })
+  const sheetName = workbook.SheetNames.find(name => name.toLowerCase() === 'leads') || workbook.SheetNames[0]
+  if (!sheetName) throw new Error('This workbook does not contain a sheet.')
+
+  const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
+    header: 1,
+    defval: '',
+    raw: false,
+    blankrows: false,
+  })
+  if (!matrix.length) throw new Error('The spreadsheet is empty.')
+
+  const infoSheetName = workbook.SheetNames.find(name => name.toLowerCase() === 'template info')
+  const infoRows = infoSheetName
+    ? XLSX.utils.sheet_to_json(workbook.Sheets[infoSheetName], { header: 1, defval: '', raw: false })
+    : []
+  const templateHotel = String(infoRows.find(row => normalizeHeader(row[0]) === 'hotelname')?.[1] || '').trim()
+
+  const headers = matrix[0].map(normalizeHeader)
+  const indexes = {}
+  Object.entries(HEADER_ALIASES).forEach(([key, aliases]) => {
+    indexes[key] = headers.findIndex(header => aliases.includes(header))
+  })
+  const missingHeaders = Object.entries(indexes)
+    .filter(([key, index]) => index < 0 && (key !== 'hotel' || !templateHotel))
+    .map(([key]) => key)
+  if (missingHeaders.length) {
+    throw new Error(`Missing required column${missingHeaders.length > 1 ? 's' : ''}: ${missingHeaders.join(', ')}.`)
+  }
+
+  const rows = matrix.slice(1).map((values, index) => ({
+    rowNumber: index + 2,
+    name: String(values[indexes.name] ?? '').trim(),
+    phone: String(values[indexes.phone] ?? '').trim(),
+    hotel: indexes.hotel >= 0 ? String(values[indexes.hotel] ?? '').trim() || templateHotel : templateHotel,
+  })).filter(row => row.name || row.phone)
+
+  if (!rows.length) throw new Error('No lead rows were found on the Leads sheet.')
+  return { rows, templateHotel }
 }
 
 export function formatGroups(groups) {

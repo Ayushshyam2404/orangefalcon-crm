@@ -18,6 +18,7 @@
 .noanswer     { background: rgba(100,100,120,0.15); color: var(--text2); }
 .interested   { background: var(--blue-soft);  color: var(--blue); }
 .notinterested{ background: var(--red-soft);   color: var(--red); }
+.ready        { background: var(--accent-soft); color: var(--accent); }
 .admin        { background: var(--accent-soft); color: var(--accent); }
 .staff        { background: var(--green-soft);  color: var(--green); }
 .default      { background: var(--surface3);    color: var(--text2); }

@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema(
     gender: { type: String, enum: ['', 'male', 'female', 'other'], default: '' },
     age: { type: Number, default: null },
     avatar: { type: String, default: '' }, // base64 data URL
+    wallpaper: { type: String, default: '', select: false }, // resized base64 data URL, private to this user
+    wallpaperTone: { type: String, enum: ['dark', 'light'], default: 'dark' },
     online: { type: Boolean, default: false },
     sessionSeconds: { type: Number, default: 0 },
     lastLogin: { type: Date, default: null },

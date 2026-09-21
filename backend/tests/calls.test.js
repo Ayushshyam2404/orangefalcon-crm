@@ -8,6 +8,7 @@
 const request = require('supertest');
 const app = require('../app');
 const Call = require('../models/Call');
+const Hotel = require('../models/Hotel');
 const { createAdminUser, createStaffUser, authHeader } = require('./helpers');
 
 let admin, staff;
@@ -182,5 +183,97 @@ describe('DELETE /api/calls/:id', () => {
       .delete(`/api/calls/${fakeId}`)
       .set(authHeader(admin._id));
     expect(res.status).toBe(404);
+  });
+});
+
+// ─── IMPORTED LEAD QUEUE ────────────────────────────────────────────────────
+
+describe('call lead queue', () => {
+  let hotel;
+
+  beforeEach(async () => {
+    hotel = await Hotel.create({
+      name: 'Queue Test Hotel',
+      city: 'Austin',
+      category: 'sales',
+      createdBy: admin._id,
+    });
+  });
+
+  it('adds a manual lead without counting it as a completed call', async () => {
+    const res = await request(app)
+      .post('/api/calls/leads')
+      .set(authHeader(staff._id))
+      .send({ name: 'Ready Lead', phone: '+1 555-0100', hotel: hotel._id, category: 'sales' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.status).toBe('pending');
+    expect(res.body.outcome).toBeNull();
+    expect(res.body.loggedBy).toBeNull();
+    expect(res.body.importedBy).toMatchObject({ name: staff.name });
+  });
+
+  it('bulk imports valid rows and reports invalid hotels', async () => {
+    const res = await request(app)
+      .post('/api/calls/import')
+      .set(authHeader(admin._id))
+      .send({
+        category: 'sales',
+        rows: [
+          { rowNumber: 2, name: 'Valid Lead', phone: '555-0101', hotel: hotel.name },
+          { rowNumber: 3, name: 'Bad Hotel', phone: '555-0102', hotel: 'Not In CRM' },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ imported: 1, rejected: 1, duplicates: 0 });
+    expect(res.body.errors[0]).toMatchObject({ row: 3 });
+    expect(await Call.countDocuments({ status: 'pending' })).toBe(1);
+  });
+
+  it('prevents a duplicate manual lead at the same hotel', async () => {
+    await Call.create({
+      name: 'Existing', phone: '+1 (555) 0109', hotel: hotel._id, category: 'sales',
+      status: 'pending', outcome: null, importedBy: admin._id,
+    });
+    const res = await request(app)
+      .post('/api/calls/leads')
+      .set(authHeader(staff._id))
+      .send({ name: 'Again', phone: '15550109', hotel: hotel._id, category: 'sales' });
+
+    expect(res.status).toBe(409);
+    expect(await Call.countDocuments({ status: 'pending' })).toBe(1);
+  });
+
+  it('skips a duplicate pending phone at the same hotel', async () => {
+    await Call.create({
+      name: 'Existing', phone: '(555) 0103', hotel: hotel._id, category: 'sales',
+      status: 'pending', outcome: null, importedBy: admin._id,
+    });
+    const res = await request(app)
+      .post('/api/calls/import')
+      .set(authHeader(admin._id))
+      .send({ category: 'sales', rows: [{ name: 'Duplicate', phone: '5550103', hotel: hotel.name }] });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ imported: 0, duplicates: 1 });
+  });
+
+  it('logs outcome, caller, call time, notes, and follow-up in one action', async () => {
+    const lead = await Call.create({
+      name: 'Call Me', phone: '555-0104', hotel: hotel._id, category: 'sales',
+      status: 'pending', outcome: null, importedBy: admin._id,
+    });
+    const res = await request(app)
+      .patch(`/api/calls/${lead._id}/outcome`)
+      .set(authHeader(staff._id))
+      .send({ outcome: 'Interested', notes: 'Send the rate sheet', followUpDone: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      status: 'completed', outcome: 'Interested', notes: 'Send the rate sheet', followUpDone: true,
+    });
+    expect(res.body.loggedBy).toMatchObject({ name: staff.name });
+    expect(res.body.calledAt).toBeTruthy();
   });
 });

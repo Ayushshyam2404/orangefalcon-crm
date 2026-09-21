@@ -11,6 +11,7 @@ const variantMap = {
   'No Answer': 'noanswer',
   Interested: 'interested',
   'Not Interested': 'notinterested',
+  'Ready to call': 'ready',
   admin: 'admin',
   staff: 'staff',
 }
@@ -38,6 +39,7 @@ const colorMap = {
   'No Answer': 'var(--text3)',
   Interested: 'var(--blue)',
   'Not Interested': 'var(--red)',
+  'Ready to call': 'var(--accent)',
   admin: 'var(--accent)',
   staff: 'var(--green)',
 }

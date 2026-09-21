@@ -273,9 +273,9 @@ async function generateAndSend() {
     // Leaves for this specific date
     LeaveRequest.find({ date: reportDay }).populate('user', 'name title'),
 
-    // Calls logged today
-    Call.find({ category: 'sales',      createdAt: { $gte: dayStart, $lte: dayEnd } }).populate('loggedBy', 'name').sort({ createdAt: -1 }),
-    Call.find({ category: 'reputation', createdAt: { $gte: dayStart, $lte: dayEnd } }).populate('loggedBy', 'name').sort({ createdAt: -1 }),
+    // Completed calls made today. Imported queue rows must not inflate call totals.
+    Call.find({ category: 'sales', status: { $ne: 'pending' }, $or: [{ calledAt: { $gte: dayStart, $lte: dayEnd } }, { calledAt: null, createdAt: { $gte: dayStart, $lte: dayEnd } }] }).populate('loggedBy', 'name').sort({ calledAt: -1, createdAt: -1 }),
+    Call.find({ category: 'reputation', status: { $ne: 'pending' }, $or: [{ calledAt: { $gte: dayStart, $lte: dayEnd } }, { calledAt: null, createdAt: { $gte: dayStart, $lte: dayEnd } }] }).populate('loggedBy', 'name').sort({ calledAt: -1, createdAt: -1 }),
 
     // Tasks created today, due today, or completed today
     Task.find({ category: 'sales',      $or: [{ createdAt: { $gte: dayStart, $lte: dayEnd } }, { deadline: { $gte: dayStart, $lte: dayEnd } }, { completedAt: { $gte: dayStart, $lte: dayEnd } }] }).populate('assignedTo createdBy', 'name').sort({ deadline: 1 }),
@@ -547,7 +547,7 @@ async function generateAndSend() {
         `<strong>${esc(c.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(c.phone)}</span>`,
         badge(c.outcome, oc, ob),
         `<span style="font-size:11px;color:${C.text2};">${esc(val(c.notes))}</span>`,
-        {v:`${esc(val(c.loggedBy?.name))}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${fmtDateTime(c.createdAt)}</span>`,c:'hc'},
+        {v:`${esc(val(c.loggedBy?.name))}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${fmtDateTime(c.calledAt || c.createdAt)}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(scRows);
@@ -567,7 +567,7 @@ async function generateAndSend() {
         `<strong>${esc(c.name)}</strong><span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${val(c.phone)}</span>`,
         badge(c.outcome, oc, ob),
         `<span style="font-size:11px;color:${C.text2};">${esc(val(c.notes))}</span>`,
-        {v:`${esc(val(c.loggedBy?.name))}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${fmtDateTime(c.createdAt)}</span>`,c:'hc'},
+        {v:`${esc(val(c.loggedBy?.name))}<span style="display:block;font-size:10px;color:${C.text3};margin-top:2px;">${fmtDateTime(c.calledAt || c.createdAt)}</span>`,c:'hc'},
       ], i);
     });
     body += tableWrap(rcRows);

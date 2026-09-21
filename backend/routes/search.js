@@ -40,7 +40,7 @@ async function searchCalls(re, limit) {
     type: 'calls',
     id: c._id,
     title: c.name,
-    subtitle: `${c.phone || 'No phone'} · ${c.outcome}`,
+    subtitle: `${c.phone || 'No phone'} · ${c.status === 'pending' ? 'Ready to call' : c.outcome}`,
     path: c.category === 'reputation' ? '/reputation-calls' : '/calls',
   }));
 }

@@ -17,7 +17,7 @@ router.post('/login', async (req, res) => {
     if (!username || !password)
       return res.status(400).json({ message: 'Username and password required' });
 
-    const user = await User.findOne({ username: username.toLowerCase().trim() });
+    const user = await User.findOne({ username: username.toLowerCase().trim() }).select('+wallpaper');
 
     // Unknown username — generic message to prevent user-enumeration
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
@@ -76,6 +76,8 @@ router.post('/login', async (req, res) => {
         role: user.role,
         title: user.title,
         avatar: user.avatar,
+        wallpaper: user.wallpaper,
+        wallpaperTone: user.wallpaperTone,
         lastLogin: user.lastLogin,
         mustChangePassword: user.mustChangePassword,
       },
@@ -114,7 +116,8 @@ router.post('/logout', protect, async (req, res) => {
 
 // GET /api/auth/me
 router.get('/me', protect, async (req, res) => {
-  res.json(req.user);
+  const user = await User.findById(req.user._id).select('-password +wallpaper');
+  res.json(user);
 });
 
 // POST /api/auth/change-initial-password — first-login forced password change
@@ -142,8 +145,8 @@ router.post('/change-initial-password', protect, async (req, res) => {
 // PUT /api/auth/profile — update own profile
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { name, email, phone, bio, gender, age, avatar, currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user._id);
+    const { name, email, phone, bio, gender, age, avatar, wallpaper, wallpaperTone, currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id).select('+wallpaper');
 
     if (name !== undefined) user.name = name.trim();
     if (email !== undefined) user.email = email.trim();
@@ -152,6 +155,18 @@ router.put('/profile', protect, async (req, res) => {
     if (gender !== undefined) user.gender = gender;
     if (age !== undefined) user.age = age || null;
     if (avatar !== undefined) user.avatar = avatar;
+    if (wallpaper !== undefined) {
+      if (wallpaper && (!wallpaper.startsWith('data:image/') || wallpaper.length > 8_000_000)) {
+        return res.status(400).json({ message: 'Wallpaper must be a valid image under 6 MB' });
+      }
+      user.wallpaper = wallpaper;
+    }
+    if (wallpaperTone !== undefined) {
+      if (!['dark', 'light'].includes(wallpaperTone)) {
+        return res.status(400).json({ message: 'Invalid wallpaper contrast setting' });
+      }
+      user.wallpaperTone = wallpaperTone;
+    }
 
     // Optional password change
     if (newPassword) {
@@ -175,6 +190,8 @@ router.put('/profile', protect, async (req, res) => {
       gender: user.gender,
       age: user.age,
       avatar: user.avatar,
+      wallpaper: user.wallpaper,
+      wallpaperTone: user.wallpaperTone,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

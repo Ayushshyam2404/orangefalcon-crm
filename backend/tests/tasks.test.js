@@ -9,6 +9,7 @@ const request = require('supertest');
 const app = require('../app');
 const Task = require('../models/Task');
 const { createAdminUser, createStaffUser, authHeader } = require('./helpers');
+const { getEasternDayRange } = require('../utils/easternTime');
 
 let admin, staff;
 
@@ -67,6 +68,44 @@ describe('GET /api/tasks', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].taskName).toBe('Pending');
+  });
+
+  it('filters tasks by an Eastern calendar day', async () => {
+    const range = getEasternDayRange('2026-09-21');
+    await Task.create({ taskName: 'Eastern Today', deadline: new Date(range.start.getTime() + 12 * 60 * 60 * 1000), createdBy: admin._id, assignedTo: admin._id });
+    await Task.create({ taskName: 'Eastern Tomorrow', deadline: range.end, createdBy: admin._id, assignedTo: admin._id });
+
+    const res = await request(app)
+      .get('/api/tasks?date=2026-09-21&category=sales')
+      .set(authHeader(admin._id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.map(task => task.taskName)).toEqual(['Eastern Today']);
+  });
+});
+
+describe('PUT /api/tasks/complete-day', () => {
+  it('marks all open tasks for the requested Eastern day and category complete', async () => {
+    const range = getEasternDayRange('2026-09-21');
+    const deadline = new Date(range.start.getTime() + 12 * 60 * 60 * 1000);
+    await Task.create({ taskName: 'First', deadline, createdBy: admin._id, assignedTo: admin._id, category: 'sales' });
+    await Task.create({ taskName: 'Second', deadline, createdBy: admin._id, assignedTo: admin._id, category: 'sales', status: 'in-progress' });
+    await Task.create({ taskName: 'Reputation', deadline, createdBy: admin._id, assignedTo: admin._id, category: 'reputation' });
+
+    const res = await request(app)
+      .put('/api/tasks/complete-day')
+      .set(authHeader(admin._id))
+      .send({ date: '2026-09-21', category: 'sales' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.updated).toBe(2);
+    expect(res.body.tasks).toHaveLength(2);
+    expect(res.body.tasks.every(task => task.status === 'completed')).toBe(true);
+
+    const completed = await Task.find({ taskName: { $in: ['First', 'Second'] } });
+    expect(completed.every(task => task.completedBy.toString() === admin._id.toString())).toBe(true);
+    expect(completed.every(task => task.completionHistory.length === 1)).toBe(true);
+    expect((await Task.findOne({ taskName: 'Reputation' })).status).toBe('pending');
   });
 });
 
@@ -181,6 +220,48 @@ describe('PUT /api/tasks/:id', () => {
     const updated = await Task.findById(task._id);
     expect(updated.completedAt).toBeDefined();
     expect(new Date(updated.completedAt).getTime()).toBeGreaterThanOrEqual(before.getTime());
+    expect(updated.completedBy.toString()).toBe(admin._id.toString());
+    expect(updated.completionHistory).toHaveLength(1);
+    expect(updated.completionHistory[0].completedBy.toString()).toBe(admin._id.toString());
+  });
+
+  it('keeps completion history when a task is reopened and completed again', async () => {
+    const task = await Task.create({ taskName: 'Repeatable', deadline: futureDate(), createdBy: admin._id, assignedTo: staff._id });
+
+    await request(app).put(`/api/tasks/${task._id}`).set(authHeader(staff._id)).send({ status: 'completed' });
+    await request(app).put(`/api/tasks/${task._id}`).set(authHeader(staff._id)).send({ status: 'in-progress' });
+
+    const reopened = await Task.findById(task._id);
+    expect(reopened.completedAt).toBeNull();
+    expect(reopened.completedBy).toBeNull();
+    expect(reopened.completionHistory).toHaveLength(1);
+
+    await request(app).put(`/api/tasks/${task._id}`).set(authHeader(admin._id)).send({ status: 'completed' });
+    const completedAgain = await Task.findById(task._id);
+    expect(completedAgain.completionHistory).toHaveLength(2);
+    expect(completedAgain.completionHistory[0].completedBy.toString()).toBe(staff._id.toString());
+    expect(completedAgain.completionHistory[1].completedBy.toString()).toBe(admin._id.toString());
+  });
+
+  it('does not allow clients to forge completion audit fields', async () => {
+    const task = await Task.create({ taskName: 'Protected audit', deadline: futureDate(), createdBy: admin._id, assignedTo: staff._id });
+
+    const res = await request(app)
+      .put(`/api/tasks/${task._id}`)
+      .set(authHeader(staff._id))
+      .send({
+        notes: 'Legitimate edit',
+        completedAt: new Date('2020-01-01').toISOString(),
+        completedBy: admin._id.toString(),
+        completionHistory: [{ completedAt: new Date('2020-01-01').toISOString(), completedBy: admin._id.toString() }],
+      });
+
+    expect(res.status).toBe(200);
+    const unchanged = await Task.findById(task._id);
+    expect(unchanged.notes).toBe('Legitimate edit');
+    expect(unchanged.completedAt).toBeNull();
+    expect(unchanged.completedBy).toBeNull();
+    expect(unchanged.completionHistory).toHaveLength(0);
   });
 
   it('returns 404 for non-existent task', async () => {
@@ -190,6 +271,79 @@ describe('PUT /api/tasks/:id', () => {
       .set(authHeader(admin._id))
       .send({ status: 'completed' });
     expect(res.status).toBe(404);
+  });
+});
+
+// ─── GET /api/tasks/history ──────────────────────────────────────────────────
+
+describe('GET /api/tasks/history', () => {
+  const historyRange = () => ({
+    start: new Date(Date.now() - 86400000).toISOString(),
+    end: new Date(Date.now() + 86400000).toISOString(),
+  });
+
+  it('returns who completed each task in the requested department and date range', async () => {
+    const salesTask = await Task.create({ taskName: 'Closed sales follow-up', deadline: futureDate(), createdBy: admin._id, assignedTo: staff._id, category: 'sales' });
+    const reputationTask = await Task.create({ taskName: 'Replied to review', deadline: futureDate(), createdBy: admin._id, assignedTo: staff._id, category: 'reputation' });
+    await request(app).put(`/api/tasks/${salesTask._id}`).set(authHeader(staff._id)).send({ status: 'completed' });
+    await request(app).put(`/api/tasks/${reputationTask._id}`).set(authHeader(admin._id)).send({ status: 'completed' });
+
+    const range = historyRange();
+    const res = await request(app)
+      .get('/api/tasks/history')
+      .query({ ...range, category: 'sales' })
+      .set(authHeader(admin._id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].taskName).toBe('Closed sales follow-up');
+    expect(res.body[0].completedBy.name).toBe(staff.name);
+    expect(res.body[0].assignedTo.name).toBe(staff.name);
+    expect(res.body[0].legacy).toBe(false);
+  });
+
+  it('limits staff history to tasks they created or were assigned', async () => {
+    const visible = await Task.create({ taskName: 'Visible completion', deadline: futureDate(), createdBy: admin._id, assignedTo: staff._id });
+    const hidden = await Task.create({ taskName: 'Admin-only completion', deadline: futureDate(), createdBy: admin._id, assignedTo: admin._id });
+    await request(app).put(`/api/tasks/${visible._id}`).set(authHeader(staff._id)).send({ status: 'completed' });
+    await request(app).put(`/api/tasks/${hidden._id}`).set(authHeader(admin._id)).send({ status: 'completed' });
+
+    const res = await request(app)
+      .get('/api/tasks/history')
+      .query({ ...historyRange(), category: 'sales' })
+      .set(authHeader(staff._id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.map(entry => entry.taskName)).toEqual(['Visible completion']);
+  });
+
+  it('includes older completed tasks and identifies them as legacy records', async () => {
+    await Task.create({
+      taskName: 'Older completion',
+      deadline: futureDate(),
+      createdBy: admin._id,
+      assignedTo: staff._id,
+      status: 'completed',
+      completedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .get('/api/tasks/history')
+      .query({ ...historyRange(), category: 'sales' })
+      .set(authHeader(admin._id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].legacy).toBe(true);
+    expect(res.body[0].completedBy).toBeNull();
+    expect(res.body[0].assignedTo.name).toBe(staff.name);
+  });
+
+  it('rejects a missing or invalid date range', async () => {
+    const res = await request(app)
+      .get('/api/tasks/history?start=not-a-date&end=also-bad')
+      .set(authHeader(admin._id));
+    expect(res.status).toBe(400);
   });
 });
 

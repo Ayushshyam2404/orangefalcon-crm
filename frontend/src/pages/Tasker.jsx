@@ -2,10 +2,14 @@ import { useEffect, useState, useRef } from 'react'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/Button'
 import { Modal, ModalActions } from '../components/Modal'
-import { fetchTasks, createTask, updateTask, deleteTask, fetchRoutines, createRoutine, updateRoutine, deleteRoutine } from '../utils/taskApi'
+import { TaskHistoryCalendar } from '../components/TaskHistoryCalendar'
+import { fetchTasks, createTask, updateTask, deleteTask, completeTasksForDay, fetchRoutines, createRoutine, updateRoutine, deleteRoutine } from '../utils/taskApi'
+import { easternDateTimeToISOString, formatEasternDate, getEasternDateKey } from '../utils/easternTime'
 import dataPageStyles from './DataPage.module.css'
 import styles from './Tasker.module.css'
 import { exportToExcel, formatTasks } from '../utils/exportToExcel'
+
+const CATEGORY = 'sales'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -28,7 +32,7 @@ function addDays(d, n) {
   const r = new Date(d); r.setDate(r.getDate() + n); return r
 }
 function todayEOD() {
-  const d = new Date(); d.setHours(23, 59, 0, 0); return d.toISOString()
+  return easternDateTimeToISOString(getEasternDateKey())
 }
 function toLocalDT(dateStr) {
   if (!dateStr) return ''; return new Date(dateStr).toISOString().slice(0, 16)
@@ -38,6 +42,7 @@ function toLocalDT(dateStr) {
 
 function TaskRow({ task, onEdit, onDelete, onStatusChange }) {
   const [expanded, setExpanded] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
   const deadline = new Date(task.deadline)
   const isOverdue = deadline < new Date() && task.status !== 'completed'
   const isDone = task.status === 'completed'
@@ -46,24 +51,36 @@ function TaskRow({ task, onEdit, onDelete, onStatusChange }) {
     'in-progress': { bg: 'rgba(59,130,246,0.08)', color: '#3b82f6', border: 'rgba(59,130,246,0.2)' },
     completed: { bg: 'rgba(16,185,129,0.08)', color: '#10b981', border: 'rgba(16,185,129,0.2)' },
   }[task.status]
-  const nextStatus = { pending: 'in-progress', 'in-progress': 'completed', completed: 'pending' }
+
+  const handleStatusChange = async (event) => {
+    event.stopPropagation()
+    setUpdatingStatus(true)
+    try {
+      await onStatusChange(task._id, event.target.value)
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
 
   return (
     <div className={`${styles.taskRow} ${isDone ? styles.taskRowDone : ''}`}>
       <div className={styles.taskRowMain} onClick={() => setExpanded(e => !e)}>
-        <button
-          className={styles.statusDotBtn}
-          style={{ background: sc.bg, border: `2px solid ${sc.border}`, color: sc.color }}
-          onClick={e => { e.stopPropagation(); onStatusChange(task._id, nextStatus[task.status]) }}
-          title={`${task.status} — click to advance`}
-        >
-          {isDone && <Icon name="check" size={11} />}
-        </button>
         <span className={styles.taskRowName}>{task.taskName}</span>
         <div className={styles.taskRowMeta}>
-          <span className={styles.statusPill} style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
-            {task.status === 'in-progress' ? 'IN PROGRESS' : task.status.toUpperCase()}
-          </span>
+          <select
+            className={styles.statusSelect}
+            value={task.status}
+            onClick={e => e.stopPropagation()}
+            onChange={handleStatusChange}
+            disabled={updatingStatus}
+            aria-label={`Status for ${task.taskName}`}
+            title="Change task status"
+            style={{ backgroundColor: sc.bg, color: sc.color, borderColor: sc.border }}
+          >
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
           <span className={`${styles.deadlineChip} ${isOverdue ? styles.deadlineOverdue : ''}`}>
             {deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             {isOverdue && ' · OVERDUE'}
@@ -210,7 +227,7 @@ function DailyRoutinePanel({ routineItems, setRoutineItems }) {
     if (!newName.trim() || adding) return
     setAdding(true)
     try {
-      const { data } = await createRoutine({ taskName: newName.trim(), defaultNote: newNote.trim() })
+      const { data } = await createRoutine({ taskName: newName.trim(), defaultNote: newNote.trim(), category: CATEGORY })
       setRoutineItems(l => [...l, data])
       setNewName(''); setNewNote('')
       newNameRef.current?.focus()
@@ -359,10 +376,14 @@ export default function Tasker() {
   const [search, setSearch] = useState(() => new URLSearchParams(window.location.search).get('q') || '')
   const [tab, setTab] = useState('tasks')
   const [routineItems, setRoutineItems] = useState([])
+  const [completingAll, setCompletingAll] = useState(false)
+  const todayKey = getEasternDateKey()
 
   const loadTasks = async () => {
     try {
-      const { data } = await fetchTasks(filter !== 'all' ? { status: filter } : {})
+      const params = { category: CATEGORY, date: todayKey }
+      if (filter !== 'all') params.status = filter
+      const { data } = await fetchTasks(params)
       setTasks(data)
     } catch (err) {
       console.error('Failed to fetch tasks:', err)
@@ -373,12 +394,14 @@ export default function Tasker() {
 
   useEffect(() => { loadTasks() }, [filter])
   useEffect(() => {
-    fetchRoutines().then(({ data }) => setRoutineItems(data)).catch(() => {})
+    fetchRoutines(CATEGORY).then(({ data }) => setRoutineItems(data)).catch(() => {})
   }, [])
 
   const handleQuickAdd = async (name) => {
-    await createTask({ taskName: name, deadline: todayEOD(), status: 'pending', notes: '' })
-    loadTasks()
+    const { data } = await createTask({ taskName: name, deadline: todayEOD(), status: 'pending', notes: '', category: CATEGORY })
+    setSearch('')
+    setFilter('all')
+    setTasks(current => [data, ...current.filter(task => task._id !== data._id)])
   }
   const handleSaveEdit = async (form) => {
     await updateTask(editModal._id, form)
@@ -389,16 +412,37 @@ export default function Tasker() {
     await deleteTask(id); loadTasks()
   }
   const handleStatusChange = async (id, status) => {
-    await updateTask(id, { status }); loadTasks()
+    const previousStatus = tasks.find(task => task._id === id)?.status
+    setTasks(current => current.map(task => task._id === id ? { ...task, status } : task))
+    try {
+      const { data } = await updateTask(id, { status })
+      setTasks(current => filter !== 'all' && filter !== status
+        ? current.filter(task => task._id !== id)
+        : current.map(task => task._id === id ? data : task))
+    } catch (err) {
+      setTasks(current => current.map(task => task._id === id ? { ...task, status: previousStatus } : task))
+      console.error('Failed to update task status:', err)
+    }
   }
 
-  const filteredTasks = (search
+  const handleCompleteAll = async () => {
+    const openTasks = tasks.filter(task => task.status !== 'completed')
+    if (!openTasks.length || !confirm(`Mark all ${openTasks.length} open task${openTasks.length === 1 ? '' : 's'} for today as done?`)) return
+    setCompletingAll(true)
+    try {
+      await completeTasksForDay({ date: todayKey, category: CATEGORY })
+      await loadTasks()
+    } catch (err) {
+      console.error('Failed to complete today\'s tasks:', err)
+    } finally {
+      setCompletingAll(false)
+    }
+  }
+
+  const filteredTasks = [...(search
     ? tasks.filter(t => t.taskName.toLowerCase().includes(search.toLowerCase()))
     : tasks
-  ).sort((a, b) => {
-    const o = { pending: 0, 'in-progress': 1, completed: 2 }
-    return o[a.status] - o[b.status] || new Date(a.deadline) - new Date(b.deadline)
-  })
+  )].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   const openCount = tasks.filter(t => t.status !== 'completed').length
 
@@ -407,7 +451,7 @@ export default function Tasker() {
       <div className={styles.pageHeader}>
         <div>
           <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: '700', letterSpacing: '-0.5px' }}>Task Manager</h1>
-          <p style={{ margin: 0, color: 'var(--text2)', fontSize: '13px' }}>Create and manage your tasks</p>
+          <p style={{ margin: 0, color: 'var(--text2)', fontSize: '13px' }}>Today · {formatEasternDate(`${todayKey}T12:00:00Z`, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} Eastern Time</p>
         </div>
         <Button variant="secondary" onClick={() => exportToExcel('tasks-export', 'Tasks', formatTasks(tasks))}>
           <Icon name="doc" size={14} /> Export Excel
@@ -416,11 +460,14 @@ export default function Tasker() {
 
       <div className={styles.tabRow}>
         <button className={`${styles.tabBtn} ${tab === 'tasks' ? styles.tabActive : ''}`} onClick={() => setTab('tasks')}>
-          Tasks {openCount > 0 && <span className={styles.tabBadge}>{openCount}</span>}
+          Today's Tasks {openCount > 0 && <span className={styles.tabBadge}>{openCount}</span>}
         </button>
         <button className={`${styles.tabBtn} ${tab === 'routine' ? styles.tabActive : ''}`} onClick={() => setTab('routine')}>
           Daily Routine
           {routineItems.length > 0 && <span className={styles.tabBadge}>{routineItems.length}</span>}
+        </button>
+        <button className={`${styles.tabBtn} ${tab === 'history' ? styles.tabActive : ''}`} onClick={() => setTab('history')}>
+          <Icon name="calendar" size={14} /> Task History
         </button>
       </div>
 
@@ -439,6 +486,11 @@ export default function Tasker() {
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
             </select>
+            {filter === 'all' && openCount > 0 && <Button variant="secondary" size="sm" onClick={handleCompleteAll} disabled={completingAll}><Icon name="check" size={13} /> {completingAll ? 'Completing…' : 'Mark all done'}</Button>}
+          </div>
+
+          <div className={styles.quickAddPanel}>
+            <QuickAddRow onAdd={handleQuickAdd} />
           </div>
 
           <div className={styles.taskList}>
@@ -447,16 +499,17 @@ export default function Tasker() {
             ) : filteredTasks.length === 0 ? (
               <div className={styles.emptyState} style={{ padding: '32px 0' }}>
                 <div className={styles.emptyIcon}><Icon name="doc" size={28} color="var(--text3)" /></div>
-                <p>{search ? 'No tasks found' : 'No tasks yet — add one below'}</p>
+                <p>{search ? 'No tasks found for today' : 'No tasks for the day — add one above'}</p>
               </div>
             ) : filteredTasks.map(task => (
               <TaskRow key={task._id} task={task} onEdit={setEditModal} onDelete={handleDelete} onStatusChange={handleStatusChange} />
             ))}
-            <QuickAddRow onAdd={handleQuickAdd} />
           </div>
         </>
-      ) : (
+      ) : tab === 'routine' ? (
         <DailyRoutinePanel routineItems={routineItems} setRoutineItems={setRoutineItems} />
+      ) : (
+        <TaskHistoryCalendar category={CATEGORY} />
       )}
 
       {editModal && (

@@ -6,6 +6,7 @@ import { Badge } from '../components/Badge'
 import { GlobalSearch } from '../components/GlobalSearch'
 import api from '../utils/api'
 import { fetchTasksByDay } from '../utils/taskApi'
+import { formatEasternDateTime, getEasternDateKey } from '../utils/easternTime'
 import styles from './Dashboard.module.css'
 
 function StatCard({ icon, iconColor, iconBg, accentColor, value, label }) {
@@ -30,7 +31,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getEasternDateKey()
     Promise.all([
       api.get('/rfps', { params: { all: true } }),
       api.get('/calls'),
@@ -51,12 +52,15 @@ export default function Dashboard() {
 
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+  const completedCalls = calls
+    .filter(c => c.status !== 'pending')
+    .sort((a, b) => new Date(b.calledAt || b.createdAt) - new Date(a.calledAt || a.createdAt))
 
   const stats = [
     { icon: 'doc', iconColor: 'var(--accent)', iconBg: 'var(--accent-soft)', accentColor: 'var(--accent)', value: rfps.length, label: 'Total RFPs' },
     { icon: 'trophy', iconColor: 'var(--green)', iconBg: 'var(--green-soft)', accentColor: 'var(--green)', value: rfps.filter(r => r.status === 'Won').length, label: 'RFPs Won' },
-    { icon: 'phone', iconColor: 'var(--blue)', iconBg: 'var(--blue-soft)', accentColor: 'var(--blue)', value: calls.length, label: 'Total Calls' },
-    { icon: 'star', iconColor: 'var(--purple)', iconBg: 'var(--purple-soft)', accentColor: 'var(--purple)', value: calls.filter(c => c.outcome === 'Interested').length, label: 'Interested Leads' },
+    { icon: 'phone', iconColor: 'var(--blue)', iconBg: 'var(--blue-soft)', accentColor: 'var(--blue)', value: completedCalls.length, label: 'Total Calls' },
+    { icon: 'star', iconColor: 'var(--purple)', iconBg: 'var(--purple-soft)', accentColor: 'var(--purple)', value: completedCalls.filter(c => c.outcome === 'Interested').length, label: 'Interested Leads' },
     { icon: 'check', iconColor: 'var(--orange)', iconBg: 'var(--orange-soft)', accentColor: 'var(--orange)', value: tasks.filter(t => t.status === 'completed').length, label: 'Tasks Completed' },
   ]
 
@@ -123,7 +127,7 @@ export default function Dashboard() {
                   <div>
                     <div className={styles.activityTitle}>{t.taskName}</div>
                     <div className={styles.activitySub}>
-                      {new Date(t.deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · <Badge label={t.status} />
+                      {formatEasternDateTime(t.deadline, { month: undefined, day: undefined, year: undefined })} · <Badge label={t.status} />
                     </div>
                   </div>
                 </div>
@@ -159,8 +163,8 @@ export default function Dashboard() {
           <div className={styles.cardTitle}>Recent Calls</div>
           <div className={styles.activityList}>
             {loading ? <p className={styles.empty}>Loading...</p>
-              : calls.length === 0 ? <p className={styles.empty}>No calls yet.</p>
-              : calls.slice(0, 6).map((c) => (
+              : completedCalls.length === 0 ? <p className={styles.empty}>No calls yet.</p>
+              : completedCalls.slice(0, 6).map((c) => (
                 <div key={c._id} className={styles.activityItem}>
                   <div className={styles.activityIcon} style={{ background: 'var(--blue-soft)' }}>
                     <Icon name="phone" size={14} color="var(--blue)" />

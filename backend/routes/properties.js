@@ -64,7 +64,7 @@ router.get('/detail', protect, async (req, res) => {
       const [rfps, groups, calls] = await Promise.all([
         RFP.find({ hotel: salesHotel._id }).populate('addedBy', 'name').sort({ createdAt: -1 }),
         Group.find({ hotel: salesHotel._id }).populate('loggedBy', 'name').sort({ checkIn: -1 }),
-        Call.find({ hotel: salesHotel._id, category: 'sales' }).sort({ createdAt: -1 }),
+        Call.find({ hotel: salesHotel._id, category: 'sales', status: { $ne: 'pending' } }).sort({ calledAt: -1, createdAt: -1 }),
       ]);
 
       const rfpsByStatus = {};

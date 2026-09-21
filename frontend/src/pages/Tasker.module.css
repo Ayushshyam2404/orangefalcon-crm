@@ -469,21 +469,6 @@
   color: var(--text3);
 }
 
-.statusDotBtn {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: transform 0.15s;
-}
-.statusDotBtn:hover {
-  transform: scale(1.2);
-}
-
 .taskRowName {
   flex: 1;
   font-size: 14px;
@@ -504,6 +489,25 @@
   padding: 2px 8px;
   border-radius: 4px;
   letter-spacing: 0.3px;
+}
+
+.statusSelect {
+  min-width: 116px;
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 5px 28px 5px 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+}
+.statusSelect:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.25);
+}
+.statusSelect:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .deadlineChip {
@@ -554,12 +558,24 @@
 
 /* ─── Quick Add Row ──────────────────────────────────────────────────────── */
 
+.quickAddPanel {
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06);
+}
+
+.quickAddPanel:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.1);
+}
+
 .quickAddRow {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 11px 16px;
-  border-top: 1px solid var(--border);
 }
 
 .quickAddPlus {
@@ -719,12 +735,12 @@
   .taskRowMain { flex-wrap: wrap; }
   .taskRowName { flex: 1 1 auto; min-width: 0; }
   .statusPill { display: none; }
-  .taskRowMeta { flex: 1 1 100%; justify-content: flex-end; order: 3; margin-top: 2px; }
+  .taskRowMeta { flex: 1 1 100%; justify-content: space-between; order: 3; margin-top: 2px; }
+  .statusSelect { min-width: 124px; }
   .taskRowActions { opacity: 1; }
   .dateNav { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
   .dateNavLabel { font-size: 13px; }
   .routineProgressRow { flex-wrap: wrap; }
   .noteToggle { padding: 7px 10px; }
 }
-
 

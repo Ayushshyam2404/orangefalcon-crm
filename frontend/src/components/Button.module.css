@@ -5,6 +5,7 @@
   border: none; transition: all 0.18s;
   letter-spacing: -0.2px; cursor: pointer;
 }
+.btn:disabled { opacity: .48; cursor: not-allowed; transform: none; box-shadow: none; }
 
 .md  { padding: 9px 16px; }
 .sm  { padding: 5px 10px; font-size: 11px; border-radius: 7px; }

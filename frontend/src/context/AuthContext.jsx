@@ -3,6 +3,25 @@ import api from '../utils/api'
 
 const AuthContext = createContext(null)
 
+function applyUserWallpaper(user) {
+  const root = document.documentElement
+  if (user?.wallpaper) {
+    root.dataset.wallpaper = 'true'
+    root.dataset.wallpaperTone = user.wallpaperTone || 'dark'
+    root.style.setProperty('--wallpaper-image', `url("${user.wallpaper}")`)
+  } else {
+    delete root.dataset.wallpaper
+    delete root.dataset.wallpaperTone
+    root.style.removeProperty('--wallpaper-image')
+  }
+}
+
+function cacheUser(user) {
+  if (!user) return localStorage.removeItem('user')
+  const { wallpaper, ...lightweightUser } = user
+  localStorage.setItem('user', JSON.stringify(lightweightUser))
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const stored = localStorage.getItem('user')
@@ -11,12 +30,22 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [sessionStart, setSessionStart] = useState(null)
 
+  useEffect(() => { applyUserWallpaper(user) }, [user])
+
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
       api.get('/auth/me')
-        .then((res) => { setUser(res.data); setSessionStart(Date.now()) })
-        .catch(() => { localStorage.removeItem('token'); localStorage.removeItem('user') })
+        .then((res) => {
+          setUser(res.data)
+          cacheUser(res.data)
+          setSessionStart(Date.now())
+        })
+        .catch(() => {
+          localStorage.removeItem('token')
+          localStorage.removeItem('user')
+          setUser(null)
+        })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -26,7 +55,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     const { data } = await api.post('/auth/login', { username, password })
     localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
+    cacheUser(data.user)
     setUser(data.user)
     setSessionStart(Date.now())
     return data.user
@@ -44,6 +73,7 @@ export function AuthProvider({ children }) {
   const refreshUser = useCallback(async () => {
     const { data } = await api.get('/auth/me')
     setUser(data)
+    cacheUser(data)
     return data
   }, [])
 
@@ -52,7 +82,7 @@ export function AuthProvider({ children }) {
     setUser(prev => {
       if (!prev) return prev
       const updated = { ...prev, mustChangePassword: false }
-      localStorage.setItem('user', JSON.stringify(updated))
+      cacheUser(updated)
       return updated
     })
   }, [])
