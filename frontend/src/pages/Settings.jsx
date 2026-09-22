@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon';
 import { PhotoUploadField } from '../components/PhotoUploadField';
 import styles from './Settings.module.css';
 import dataStyles from './DataPage.module.css';
+import { useAuth } from '../context/AuthContext';
 
 function useTheme() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -18,6 +19,8 @@ function useTheme() {
 }
 
 const Settings = () => {
+  const { user } = useAuth();
+  const can = (module, action = 'read') => user?.isMaster || user?.permissions?.[module]?.[action] === true;
   const [activeTab, setActiveTab] = useState('hotels');
   const { theme, toggle: toggleTheme } = useTheme();
   const [hotels, setHotels] = useState([]);
@@ -29,7 +32,7 @@ const Settings = () => {
   const [editingId, setEditingId] = useState(null);
 
   const [hotelForm, setHotelForm] = useState({ name: '', city: '', category: 'sales', photo: '' });
-  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'staff', title: '' });
+  const [userForm, setUserForm] = useState({ name: '', username: '', password: '', role: 'staff', title: '', department: 'sales' });
   const [credentialsInfo, setCredentialsInfo] = useState(null); // { username, tempPassword }
 
   // Company settings state
@@ -39,6 +42,8 @@ const Settings = () => {
     expectedClockIn: '09:00',
     expectedHoursPerDay: 8,
     expectedDaysPerWeek: 5,
+    inactivityMinutes: 5,
+    inactivityWarningLimit: 3,
   });
   const [logoPreview, setLogoPreview] = useState('');
   const [companySaving, setCompanySaving] = useState(false);
@@ -57,26 +62,39 @@ const Settings = () => {
   const [restoring, setRestoring] = useState(false);
   const [restoreResult, setRestoreResult] = useState(null); // { ok, message, results, warnings }
 
+  const availableTabs = [
+    can('hotels') && 'hotels', can('hotelScores') && 'rephotels', can('userManagement') && 'users',
+    can('appearance') && 'appearance', can('companySettings') && 'company',
+    (can('reportRecipients') || can('dailyReports')) && 'report', can('backupRestore') && 'backup',
+  ].filter(Boolean);
+
+  useEffect(() => {
+    if (availableTabs.length && !availableTabs.includes(activeTab)) setActiveTab(availableTabs[0]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id]);
+
   // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [hotelsRes, usersRes, companyRes, repHotelsRes] = await Promise.all([
+        const [hotelsRes, usersRes, companyRes, repHotelsRes] = await Promise.allSettled([
           api.get('/hotels', { params: { category: 'sales' } }),
           api.get('/users'),
           api.get('/company-settings'),
           api.get('/hotels', { params: { category: 'reputation' } }),
         ]);
-        setHotels(hotelsRes.data);
-        setRepHotels(repHotelsRes.data);
-        setUsers(usersRes.data);
-        const cs = companyRes.data;
+        if (hotelsRes.status === 'fulfilled') setHotels(hotelsRes.value.data);
+        if (repHotelsRes.status === 'fulfilled') setRepHotels(repHotelsRes.value.data);
+        if (usersRes.status === 'fulfilled') setUsers(usersRes.value.data);
+        const cs = companyRes.status === 'fulfilled' ? companyRes.value.data : {};
         setCompanyForm({
           companyName:         cs.companyName         || 'Orange Falcon',
           logo:                cs.logo                || '',
           expectedClockIn:     cs.expectedClockIn     || '09:00',
           expectedHoursPerDay: cs.expectedHoursPerDay || 8,
           expectedDaysPerWeek: cs.expectedDaysPerWeek || 5,
+          inactivityMinutes: cs.inactivityMinutes || 5,
+          inactivityWarningLimit: cs.inactivityWarningLimit || 3,
         });
         setLogoPreview(cs.logo || '');
         setReportRecipients(cs.reportRecipients || []);
@@ -108,7 +126,12 @@ const Settings = () => {
     e.preventDefault();
     setCompanySaving(true);
     try {
-      await api.put('/company-settings', companyForm);
+      const payload = { ...companyForm };
+      if (!user?.isMaster) {
+        delete payload.inactivityMinutes;
+        delete payload.inactivityWarningLimit;
+      }
+      await api.put('/company-settings', payload);
       setCompanySaved(true);
       setTimeout(() => setCompanySaved(false), 3000);
     } catch (err) {
@@ -267,7 +290,7 @@ const Settings = () => {
       const res = await api.get('/users');
       setUsers(res.data);
       setShowModal(false);
-      setUserForm({ name: '', username: '', password: '', role: 'staff', title: '' });
+      setUserForm({ name: '', username: '', password: '', role: 'staff', title: '', department: 'sales' });
       setEditingId(null);
     } catch (err) {
       console.error('Error saving user:', err);
@@ -285,7 +308,7 @@ const Settings = () => {
 
   // Handle edit user
   const handleEditUser = (user) => {
-    setUserForm({ name: user.name, username: user.username, password: '', role: user.role, title: user.title || '' });
+    setUserForm({ name: user.name, username: user.username, password: '', role: user.role, title: user.title || '', department: user.department || 'sales' });
     setEditingId(user._id);
     setModalType('user');
     setShowModal(true);
@@ -326,48 +349,48 @@ const Settings = () => {
 
       {/* Tabs */}
       <div className={styles.tabs}>
-        <button
+        {can('hotels') && <button
           className={`${styles.tab} ${activeTab === 'hotels' ? styles.active : ''}`}
           onClick={() => setActiveTab('hotels')}
         >
           Sales Hotels
-        </button>
-        <button
+        </button>}
+        {can('hotelScores') && <button
           className={`${styles.tab} ${activeTab === 'rephotels' ? styles.active : ''}`}
           onClick={() => setActiveTab('rephotels')}
         >
           Reputation Hotels
-        </button>
-        <button
+        </button>}
+        {can('userManagement') && <button
           className={`${styles.tab} ${activeTab === 'users' ? styles.active : ''}`}
           onClick={() => setActiveTab('users')}
         >
           Users
-        </button>
-        <button
+        </button>}
+        {can('appearance') && <button
           className={`${styles.tab} ${activeTab === 'appearance' ? styles.active : ''}`}
           onClick={() => setActiveTab('appearance')}
         >
           Appearance
-        </button>
-        <button
+        </button>}
+        {can('companySettings') && <button
           className={`${styles.tab} ${activeTab === 'company' ? styles.active : ''}`}
           onClick={() => setActiveTab('company')}
         >
           Company
-        </button>
-        <button
+        </button>}
+        {(can('reportRecipients') || can('dailyReports')) && <button
           className={`${styles.tab} ${activeTab === 'report' ? styles.active : ''}`}
           onClick={() => setActiveTab('report')}
         >
           Report Recipients
-        </button>
-        <button
+        </button>}
+        {can('backupRestore') && <button
           className={`${styles.tab} ${activeTab === 'backup' ? styles.active : ''}`}
           onClick={() => setActiveTab('backup')}
         >
           Backup &amp; Restore
-        </button>
+        </button>}
       </div>
 
       {/* Hotels Tab */}
@@ -519,7 +542,7 @@ const Settings = () => {
             <h3>Manage Users</h3>
             <button
               onClick={() => {
-                setUserForm({ name: '', username: '', password: '', role: 'staff' });
+                setUserForm({ name: '', username: '', password: '', role: 'staff', title: '', department: 'sales' });
                 setEditingId(null);
                 setModalType('user');
                 setShowModal(true);
@@ -739,12 +762,27 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className={styles.companySaveRow}>
+            {user?.isMaster && <div className={styles.companySection}>
+              <div className={styles.companySectionTitle}>Computer Inactivity &amp; Warnings</div>
+              <p className={styles.companySectionHint}>A warning is recorded in Employee Behaviour when no mouse, keyboard, scroll or touch activity is detected while the CRM is open.</p>
+              <div className={styles.timingGrid}>
+                <div className={styles.timingItem}>
+                  <label className={styles.timingLabel}>Warn After (minutes)</label>
+                  <input type="number" className={styles.companyInput} min={1} max={120} value={companyForm.inactivityMinutes} onChange={e => setCompanyForm(f => ({ ...f, inactivityMinutes: parseInt(e.target.value, 10) || 5 }))} />
+                </div>
+                <div className={styles.timingItem}>
+                  <label className={styles.timingLabel}>Warning Limit</label>
+                  <input type="number" className={styles.companyInput} min={1} max={100} value={companyForm.inactivityWarningLimit} onChange={e => setCompanyForm(f => ({ ...f, inactivityWarningLimit: parseInt(e.target.value, 10) || 3 }))} />
+                </div>
+              </div>
+            </div>}
+
+            {can('companySettings', 'write') && <div className={styles.companySaveRow}>
               <button type="submit" className={styles.submitBtn} disabled={companySaving}>
                 {companySaving ? 'Saving…' : 'Save Company Settings'}
               </button>
               {companySaved && <span className={styles.savedMsg}>✓ Saved successfully</span>}
-            </div>
+            </div>}
           </form>
         </div>
       )}
@@ -753,12 +791,13 @@ const Settings = () => {
       {activeTab === 'report' && (
         <div className={styles.content}>
           <div className={styles.sectionHeader}>
-            <h3>Report Recipients</h3>
+            <h3>Reports</h3>
           </div>
           <p className={styles.companySectionHint} style={{ marginBottom: '20px' }}>
             The nightly full backup report is emailed to everyone on this list at 11 PM ET. You can also trigger it manually below.
           </p>
 
+          {can('reportRecipients') && <>
           {/* Recipient list */}
           <div className={styles.recipientList}>
             {reportRecipients.length === 0 && (
@@ -769,19 +808,19 @@ const Settings = () => {
             {reportRecipients.map(email => (
               <div key={email} className={styles.recipientRow}>
                 <span className={styles.recipientEmail}>{email}</span>
-                <button
+                {can('reportRecipients', 'write') && <button
                   type="button"
                   className={styles.recipientRemove}
                   onClick={() => handleRemoveRecipient(email)}
                 >
                   Remove
-                </button>
+                </button>}
               </div>
             ))}
           </div>
 
           {/* Add new recipient */}
-          <div className={styles.recipientAddRow}>
+          {can('reportRecipients', 'write') && <div className={styles.recipientAddRow}>
             <input
               type="email"
               className={styles.companyInput}
@@ -793,9 +832,10 @@ const Settings = () => {
             <button type="button" className={styles.addBtn} onClick={handleAddRecipient}>
               + Add
             </button>
-          </div>
+          </div>}
 
           <div className={styles.companySaveRow} style={{ marginTop: '16px', gap: '12px', flexWrap: 'wrap' }}>
+            {can('reportRecipients', 'write') && <>
             <button
               type="button"
               className={styles.submitBtn}
@@ -805,6 +845,10 @@ const Settings = () => {
               {recipientSaving ? 'Saving…' : 'Save Recipients'}
             </button>
             {recipientSaved && <span className={styles.savedMsg}>✓ Saved</span>}
+            </>}
+          </div>
+          </>}
+          {can('dailyReports', 'write') && <div className={styles.companySaveRow} style={{ marginTop: '16px' }}>
             <button
               type="button"
               className={styles.sendReportBtnSettings}
@@ -813,7 +857,7 @@ const Settings = () => {
             >
               {sendingReport ? 'Sending…' : 'Send Report Now'}
             </button>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -988,6 +1032,14 @@ const Settings = () => {
                 <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}>
                   <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
+                </select>
+                <select value={userForm.department || 'sales'} onChange={(e) => setUserForm({ ...userForm, department: e.target.value })}>
+                  <option value="sales">Sales</option>
+                  <option value="reputation">Reputation</option>
+                  <option value="marketing">Marketing</option>
+                  <option value="operations">Operations</option>
+                  <option value="internal-sales">Internal Sales</option>
+                  <option value="management">Management</option>
                 </select>
               </>
             )}

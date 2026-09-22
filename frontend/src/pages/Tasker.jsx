@@ -8,8 +8,7 @@ import { easternDateTimeToISOString, formatEasternDate, getEasternDateKey } from
 import dataPageStyles from './DataPage.module.css'
 import styles from './Tasker.module.css'
 import { exportToExcel, formatTasks } from '../utils/exportToExcel'
-
-const CATEGORY = 'sales'
+import { usePermission } from '../context/AuthContext'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +39,7 @@ function toLocalDT(dateStr) {
 
 // ─── Task Row (Notion-style list) ─────────────────────────────────────────────
 
-function TaskRow({ task, onEdit, onDelete, onStatusChange }) {
+function TaskRow({ task, onEdit, onDelete, onStatusChange, writable }) {
   const [expanded, setExpanded] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const deadline = new Date(task.deadline)
@@ -72,7 +71,7 @@ function TaskRow({ task, onEdit, onDelete, onStatusChange }) {
             value={task.status}
             onClick={e => e.stopPropagation()}
             onChange={handleStatusChange}
-            disabled={updatingStatus}
+            disabled={updatingStatus || !writable}
             aria-label={`Status for ${task.taskName}`}
             title="Change task status"
             style={{ backgroundColor: sc.bg, color: sc.color, borderColor: sc.border }}
@@ -86,10 +85,10 @@ function TaskRow({ task, onEdit, onDelete, onStatusChange }) {
             {isOverdue && ' · OVERDUE'}
           </span>
         </div>
-        <div className={styles.taskRowActions} onClick={e => e.stopPropagation()}>
+        {writable && <div className={styles.taskRowActions} onClick={e => e.stopPropagation()}>
           <button className={styles.iconBtn} onClick={() => onEdit(task)} title="Edit"><Icon name="pen" size={13} /></button>
           <button className={`${styles.iconBtn} ${styles.iconBtnDanger}`} onClick={() => onDelete(task._id)} title="Delete"><Icon name="trash" size={13} /></button>
-        </div>
+        </div>}
       </div>
       {expanded && (
         <div className={styles.taskRowExpand}>
@@ -176,7 +175,7 @@ function TaskEditModal({ task, onSave, onClose }) {
 
 // ─── Daily Routine Panel ──────────────────────────────────────────────────────
 
-function DailyRoutinePanel({ routineItems, setRoutineItems }) {
+function DailyRoutinePanel({ routineItems, setRoutineItems, category, writable }) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [checklist, setChecklist] = useState(() => loadChecklistForDate(new Date()))
   const [expandedNote, setExpandedNote] = useState(null)
@@ -187,7 +186,7 @@ function DailyRoutinePanel({ routineItems, setRoutineItems }) {
   const [newNote, setNewNote] = useState('')
   const [adding, setAdding] = useState(false)
   const newNameRef = useRef(null)
-  const readonly = !isToday(selectedDate)
+  const readonly = !isToday(selectedDate) || !writable
 
   useEffect(() => {
     setChecklist(loadChecklistForDate(selectedDate))
@@ -227,7 +226,7 @@ function DailyRoutinePanel({ routineItems, setRoutineItems }) {
     if (!newName.trim() || adding) return
     setAdding(true)
     try {
-      const { data } = await createRoutine({ taskName: newName.trim(), defaultNote: newNote.trim(), category: CATEGORY })
+      const { data } = await createRoutine({ taskName: newName.trim(), defaultNote: newNote.trim(), category })
       setRoutineItems(l => [...l, data])
       setNewName(''); setNewNote('')
       newNameRef.current?.focus()
@@ -343,7 +342,7 @@ function DailyRoutinePanel({ routineItems, setRoutineItems }) {
       )}
 
       {/* Inline add to routine (today only) */}
-      {!readonly && (
+      {!readonly && writable && (
         <div className={styles.quickAddRow} style={{ marginTop: '12px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', borderTop: '1px solid var(--border)' }}>
           <span className={styles.quickAddPlus}>+</span>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -368,7 +367,9 @@ function DailyRoutinePanel({ routineItems, setRoutineItems }) {
 
 // ─── Main Tasker ──────────────────────────────────────────────────────────────
 
-export default function Tasker() {
+export default function Tasker({ category = 'sales', title = 'Task Manager', subtitle }) {
+  const permissionModule = { reputation: 'reputationTasks', marketing: 'marketingTasks', operations: 'operationsTasks', 'internal-sales': 'internalSalesTasks' }[category] || 'tasks'
+  const writable = usePermission(permissionModule, 'write')
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -381,7 +382,7 @@ export default function Tasker() {
 
   const loadTasks = async () => {
     try {
-      const params = { category: CATEGORY, date: todayKey }
+      const params = { category, date: todayKey }
       if (filter !== 'all') params.status = filter
       const { data } = await fetchTasks(params)
       setTasks(data)
@@ -392,13 +393,13 @@ export default function Tasker() {
     }
   }
 
-  useEffect(() => { loadTasks() }, [filter])
+  useEffect(() => { loadTasks() }, [filter, category])
   useEffect(() => {
-    fetchRoutines(CATEGORY).then(({ data }) => setRoutineItems(data)).catch(() => {})
-  }, [])
+    fetchRoutines(category).then(({ data }) => setRoutineItems(data)).catch(() => {})
+  }, [category])
 
   const handleQuickAdd = async (name) => {
-    const { data } = await createTask({ taskName: name, deadline: todayEOD(), status: 'pending', notes: '', category: CATEGORY })
+    const { data } = await createTask({ taskName: name, deadline: todayEOD(), status: 'pending', notes: '', category })
     setSearch('')
     setFilter('all')
     setTasks(current => [data, ...current.filter(task => task._id !== data._id)])
@@ -430,7 +431,7 @@ export default function Tasker() {
     if (!openTasks.length || !confirm(`Mark all ${openTasks.length} open task${openTasks.length === 1 ? '' : 's'} for today as done?`)) return
     setCompletingAll(true)
     try {
-      await completeTasksForDay({ date: todayKey, category: CATEGORY })
+      await completeTasksForDay({ date: todayKey, category })
       await loadTasks()
     } catch (err) {
       console.error('Failed to complete today\'s tasks:', err)
@@ -450,8 +451,8 @@ export default function Tasker() {
     <div>
       <div className={styles.pageHeader}>
         <div>
-          <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: '700', letterSpacing: '-0.5px' }}>Task Manager</h1>
-          <p style={{ margin: 0, color: 'var(--text2)', fontSize: '13px' }}>Today · {formatEasternDate(`${todayKey}T12:00:00Z`, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} Eastern Time</p>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '28px', fontWeight: '700', letterSpacing: '-0.5px' }}>{title}</h1>
+          <p style={{ margin: 0, color: 'var(--text2)', fontSize: '13px' }}>{subtitle || `Today · ${formatEasternDate(`${todayKey}T12:00:00Z`, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} Eastern Time`}</p>
         </div>
         <Button variant="secondary" onClick={() => exportToExcel('tasks-export', 'Tasks', formatTasks(tasks))}>
           <Icon name="doc" size={14} /> Export Excel
@@ -486,12 +487,12 @@ export default function Tasker() {
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
             </select>
-            {filter === 'all' && openCount > 0 && <Button variant="secondary" size="sm" onClick={handleCompleteAll} disabled={completingAll}><Icon name="check" size={13} /> {completingAll ? 'Completing…' : 'Mark all done'}</Button>}
+            {writable && filter === 'all' && openCount > 0 && <Button variant="secondary" size="sm" onClick={handleCompleteAll} disabled={completingAll}><Icon name="check" size={13} /> {completingAll ? 'Completing…' : 'Mark all done'}</Button>}
           </div>
 
-          <div className={styles.quickAddPanel}>
+          {writable && <div className={styles.quickAddPanel}>
             <QuickAddRow onAdd={handleQuickAdd} />
-          </div>
+          </div>}
 
           <div className={styles.taskList}>
             {loading ? (
@@ -502,17 +503,17 @@ export default function Tasker() {
                 <p>{search ? 'No tasks found for today' : 'No tasks for the day — add one above'}</p>
               </div>
             ) : filteredTasks.map(task => (
-              <TaskRow key={task._id} task={task} onEdit={setEditModal} onDelete={handleDelete} onStatusChange={handleStatusChange} />
+              <TaskRow key={task._id} task={task} onEdit={setEditModal} onDelete={handleDelete} onStatusChange={handleStatusChange} writable={writable} />
             ))}
           </div>
         </>
       ) : tab === 'routine' ? (
-        <DailyRoutinePanel routineItems={routineItems} setRoutineItems={setRoutineItems} />
+        <DailyRoutinePanel routineItems={routineItems} setRoutineItems={setRoutineItems} category={category} writable={writable} />
       ) : (
-        <TaskHistoryCalendar category={CATEGORY} />
+        <TaskHistoryCalendar category={category} />
       )}
 
-      {editModal && (
+      {writable && editModal && (
         <TaskEditModal task={editModal} onSave={handleSaveEdit} onClose={() => setEditModal(null)} />
       )}
     </div>

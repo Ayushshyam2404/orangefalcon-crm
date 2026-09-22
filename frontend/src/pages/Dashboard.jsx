@@ -23,6 +23,7 @@ function StatCard({ icon, iconColor, iconBg, accentColor, value, label }) {
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const can = key => user?.isMaster || user?.permissions?.[key]?.read === true
   const [rfps, setRfps] = useState([])
   const [calls, setCalls] = useState([])
   const [tasks, setTasks] = useState([])
@@ -33,11 +34,11 @@ export default function Dashboard() {
   useEffect(() => {
     const today = getEasternDateKey()
     Promise.all([
-      api.get('/rfps', { params: { all: true } }),
-      api.get('/calls'),
-      fetchTasksByDay(today),
-      api.get('/events/upcoming'),
-      api.get('/announcements'),
+      can('rfps') ? api.get('/rfps', { params: { all: true } }) : Promise.resolve({ data: [] }),
+      can('calls') ? api.get('/calls') : Promise.resolve({ data: [] }),
+      can('tasks') ? fetchTasksByDay(today) : Promise.resolve({ data: [] }),
+      can('calendar') ? api.get('/events/upcoming') : Promise.resolve({ data: [] }),
+      can('announcements') ? api.get('/announcements') : Promise.resolve({ data: [] }),
     ])
       .then(([r, c, t, e, a]) => {
         setRfps(r.data)
@@ -48,7 +49,7 @@ export default function Dashboard() {
       })
       .catch(err => console.error('Failed to fetch dashboard data:', err))
       .finally(() => setLoading(false))
-  }, [])
+  }, [user?._id])
 
   const h = new Date().getHours()
   const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
@@ -71,7 +72,7 @@ export default function Dashboard() {
           <h1 className={styles.title}>Dashboard</h1>
           <p className={styles.subtitle}>{greeting}, {user?.name}</p>
         </div>
-        <GlobalSearch />
+        {can('globalSearch') && <GlobalSearch />}
       </div>
 
       <div className={styles.statsGrid}>

@@ -8,8 +8,11 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function propertyKey(name) {
+  return String(name || '')
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
 }
 
 // GET /api/properties - one row per physical property, merging the sales-category
@@ -21,10 +24,11 @@ router.get('/', protect, async (req, res) => {
     const byKey = new Map();
 
     for (const h of hotels) {
-      const key = h.name.trim().toLowerCase();
+      const key = propertyKey(h.name);
       if (!byKey.has(key)) {
         byKey.set(key, {
           name: h.name,
+          propertyKey: key,
           city: h.city,
           photo: h.photo || '',
           hasSales: false,
@@ -51,7 +55,8 @@ router.get('/detail', protect, async (req, res) => {
     const { name } = req.query;
     if (!name) return res.status(400).json({ message: 'name is required' });
 
-    const hotels = await Hotel.find({ name: { $regex: `^${escapeRegex(name)}$`, $options: 'i' } });
+    const requestedKey = propertyKey(name);
+    const hotels = (await Hotel.find()).filter(h => propertyKey(h.name) === requestedKey);
     if (hotels.length === 0) return res.status(404).json({ message: 'Property not found' });
 
     const salesHotel = hotels.find((h) => h.category === 'sales');

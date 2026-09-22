@@ -12,7 +12,21 @@ export default function Properties() {
 
   useEffect(() => {
     api.get('/properties')
-      .then(({ data }) => setProperties(data))
+      .then(({ data }) => {
+        const unique = new Map()
+        data.forEach(property => {
+          const key = property.propertyKey || property.name.normalize('NFKD').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim()
+          const current = unique.get(key)
+          unique.set(key, current ? {
+            ...current,
+            hasSales: current.hasSales || property.hasSales,
+            hasReputation: current.hasReputation || property.hasReputation,
+            photo: current.photo || property.photo,
+            city: current.city || property.city,
+          } : property)
+        })
+        setProperties([...unique.values()])
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -52,7 +66,7 @@ export default function Properties() {
       ) : (
         <div className={styles.grid}>
           {filtered.map((p) => (
-            <button key={p.name.toLowerCase()} className={styles.card} onClick={() => openProperty(p.name)}>
+            <button key={p.propertyKey || p.name.toLowerCase()} className={styles.card} onClick={() => openProperty(p.name)}>
               <div className={styles.photoWrap}>
                 {p.photo
                   ? <img src={p.photo} alt={p.name} className={styles.photo} />

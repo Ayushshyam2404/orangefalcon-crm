@@ -4,12 +4,15 @@ require('dotenv').config();
 const app = require('./app');
 const cron = require('node-cron');
 const { generateAndSend } = require('./services/dailyReport');
+const ensureMasterUser = require('./services/ensureMasterUser');
 
 // Connect to MongoDB and start server
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log('✅ MongoDB connected');
+    await ensureMasterUser();
+    console.log('🔐 Master account is ready');
     app.listen(process.env.PORT || 5003, () => {
       console.log(`🚀 Server running on port ${process.env.PORT || 5003}`);
     });

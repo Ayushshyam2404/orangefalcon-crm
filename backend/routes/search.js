@@ -10,6 +10,7 @@ const Task = require('../models/Task');
 const Announcement = require('../models/Announcement');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { permissionFor } = require('../config/permissions');
 
 const router = express.Router();
 router.use(protect);
@@ -102,14 +103,18 @@ async function searchGroups(re, limit) {
   }));
 }
 
-async function searchTasks(re, limit) {
-  const rows = await Task.find({ taskName: re }).sort({ deadline: -1 }).limit(limit);
+async function searchTasks(re, limit, user) {
+  const access = user.isMaster || user.role === 'admin' ? {} : { $or: [{ assignedTo: user._id }, { createdBy: user._id }] };
+  const rows = await Task.find({ taskName: re, ...access }).sort({ deadline: -1 }).limit(limit);
   return rows.map((t) => ({
     type: 'tasks',
     id: t._id,
     title: t.taskName,
     subtitle: t.status,
-    path: t.category === 'reputation' ? '/reputation-tasks' : '/tasks',
+    path: t.category === 'reputation' ? '/reputation-tasks'
+      : t.category === 'marketing' ? '/marketing-tasks'
+      : t.category === 'operations' ? '/operations-tasks'
+      : t.category === 'internal-sales' ? '/internal-sales-tasks' : '/tasks',
   }));
 }
 
@@ -151,6 +156,16 @@ const SEARCHERS = {
   users: searchUsers,
 };
 
+const PATH_MODULES = {
+  '/rfps': 'rfps', '/rfps-consideration': 'rfpConsideration', '/calls': 'calls',
+  '/reputation-calls': 'reputationCalls', '/leads': 'leads', '/corporate': 'corporate',
+  '/hotel-scores': 'hotelScores', '/groups': 'groups', '/tasks': 'tasks',
+  '/reputation-tasks': 'reputationTasks', '/marketing-tasks': 'marketingTasks',
+  '/operations-tasks': 'operationsTasks', '/internal-sales-tasks': 'internalSalesTasks',
+  '/announcements': 'announcements', '/user-management': 'employeeBehaviour',
+};
+const visibleTo = (user, result) => permissionFor(user, PATH_MODULES[result.path]).read;
+
 // GET /api/search?q=<term>&mode=<optional type>
 router.get('/', async (req, res) => {
   try {
@@ -159,19 +174,19 @@ router.get('/', async (req, res) => {
     if (!q) return res.json({ results: [] });
 
     const re = new RegExp(escapeRegex(q), 'i');
-    const isAdmin = req.user.role === 'admin';
+    const canSearchUsers = permissionFor(req.user, 'employeeBehaviour').read || permissionFor(req.user, 'userManagement').read;
 
     if (mode) {
-      if (mode === 'users' && !isAdmin) return res.json({ results: [] });
+      if (mode === 'users' && !canSearchUsers) return res.json({ results: [] });
       const searcher = SEARCHERS[mode];
       if (!searcher) return res.status(400).json({ message: `Unknown search mode "${mode}"` });
-      const results = await searcher(re, 25);
+      const results = (await searcher(re, 25, req.user)).filter(result => visibleTo(req.user, result));
       return res.json({ results });
     }
 
-    const types = Object.keys(SEARCHERS).filter((t) => t !== 'users' || isAdmin);
-    const perType = await Promise.all(types.map((t) => SEARCHERS[t](re, 4)));
-    const results = perType.flat();
+    const types = Object.keys(SEARCHERS).filter((t) => t !== 'users' || canSearchUsers);
+    const perType = await Promise.all(types.map((t) => SEARCHERS[t](re, 4, req.user)));
+    const results = perType.flat().filter(result => visibleTo(req.user, result));
     res.json({ results });
   } catch (err) {
     res.status(500).json({ message: err.message });

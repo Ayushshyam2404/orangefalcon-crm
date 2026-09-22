@@ -16,7 +16,13 @@ let salesHotel, repHotel;
 
 beforeEach(async () => {
   admin = await createAdminUser({ username: 'repadmin' });
-  staff = await createStaffUser({ username: 'repstaff' });
+  staff = await createStaffUser({
+    username: 'repstaff',
+    permissions: {
+      hotels: { read: true, write: false },
+      hotelScores: { read: true, write: true },
+    },
+  });
 
   salesHotel = await Hotel.create({ name: 'Sales Grand', city: 'Chicago', createdBy: admin._id, category: 'sales' });
   repHotel   = await Hotel.create({ name: 'Rep Luxury',  city: 'Miami',   createdBy: admin._id, category: 'reputation' });
@@ -458,7 +464,7 @@ describe('RoutineItem — category field', () => {
 
   it('rejects an invalid category', async () => {
     await expect(
-      RoutineItem.create({ user: admin._id, taskName: 'Bad', category: 'operations' })
+      RoutineItem.create({ user: admin._id, taskName: 'Bad', category: 'not-a-department' })
     ).rejects.toThrow();
   });
 

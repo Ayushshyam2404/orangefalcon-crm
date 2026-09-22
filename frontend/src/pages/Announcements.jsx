@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../context/AuthContext'
+import { usePermission } from '../context/AuthContext'
 import { Icon } from '../components/Icon'
 import { Button } from '../components/Button'
 import { Modal, ModalActions } from '../components/Modal'
@@ -38,8 +38,7 @@ function todayISO() {
 }
 
 export default function Announcements() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = usePermission('announcements', 'write')
 
   const [announcements, setAnnouncements] = useState([])
   const [loading, setLoading] = useState(true)

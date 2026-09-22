@@ -5,11 +5,14 @@
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const Hotel = require('./models/Hotel');
+const ensureMasterUser = require('./services/ensureMasterUser');
 require('dotenv').config();
 
 async function seed() {
   await mongoose.connect(process.env.MONGO_URI);
   console.log('Connected to MongoDB');
+  await ensureMasterUser();
+  console.log('✅ Master user ready: master / admin123');
 
   const adminExists = await User.findOne({ username: 'aayush' });
   if (!adminExists) {

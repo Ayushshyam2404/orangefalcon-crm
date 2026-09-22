@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Announcement = require('../models/Announcement');
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 
 // All routes require auth
 router.use(protect);
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/announcements — create (admin only)
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', requirePermission('announcements', 'write'), async (req, res) => {
   try {
     const { heading, noticeDate, body, priority } = req.body;
     if (!heading || !noticeDate || !body)
@@ -40,7 +40,7 @@ router.post('/', adminOnly, async (req, res) => {
 });
 
 // PUT /api/announcements/:id — edit (admin only)
-router.put('/:id', adminOnly, async (req, res) => {
+router.put('/:id', requirePermission('announcements', 'write'), async (req, res) => {
   try {
     const { heading, noticeDate, body, priority } = req.body;
     const announcement = await Announcement.findByIdAndUpdate(
@@ -61,7 +61,7 @@ router.put('/:id', adminOnly, async (req, res) => {
 });
 
 // DELETE /api/announcements/:id — delete (admin only)
-router.delete('/:id', adminOnly, async (req, res) => {
+router.delete('/:id', requirePermission('announcements', 'write'), async (req, res) => {
   try {
     const a = await Announcement.findByIdAndDelete(req.params.id);
     if (!a) return res.status(404).json({ message: 'Announcement not found' });

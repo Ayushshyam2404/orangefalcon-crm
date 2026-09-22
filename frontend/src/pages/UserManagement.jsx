@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon'
 import { Badge } from '../components/Badge'
 import styles from './DataPage.module.css'
 import own from './UserManagement.module.css'
+import { usePermission } from '../context/AuthContext'
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -148,14 +149,14 @@ function ReportModal({ onClose, year, month, monthLabel }) {
   const expWorkingDays = expDays * weeks
 
   // Compute per-employee scores
-  const employees = data.map(({ user, daysWorked, workedSeconds, breakSeconds, leaves }) => {
+  const employees = data.map(({ user, daysWorked, workedSeconds, breakSeconds, leaves, inactivityWarnings = 0 }) => {
     const avgHoursRaw  = daysWorked > 0 ? workedSeconds / daysWorked / 3600 : 0
     const attendanceRate  = expWorkingDays > 0 ? Math.min(100, (daysWorked / expWorkingDays) * 100) : 0
     const efficiencyRate  = expHours > 0 && daysWorked > 0 ? Math.min(100, (avgHoursRaw / expHours) * 100) : 0
-    const overallScore    = Math.round((attendanceRate * 0.5) + (efficiencyRate * 0.5))
+    const overallScore    = Math.max(0, Math.round((attendanceRate * 0.5) + (efficiencyRate * 0.5) - Math.min(30, inactivityWarnings * 3)))
     const tier            = getTier(overallScore)
     return {
-      user, daysWorked, workedSeconds, breakSeconds, leaves,
+      user, daysWorked, workedSeconds, breakSeconds, leaves, inactivityWarnings,
       avgHoursRaw, attendanceRate, efficiencyRate, overallScore, tier,
     }
   }).sort((a, b) => b.overallScore - a.overallScore)
@@ -282,6 +283,7 @@ function ReportModal({ onClose, year, month, monthLabel }) {
                   <th>Score</th>
                   <th>Tier</th>
                   <th>Leaves</th>
+                  <th>Idle Warnings</th>
                 </tr>
               </thead>
               <tbody>
@@ -324,6 +326,7 @@ function ReportModal({ onClose, year, month, monthLabel }) {
                       </span>
                     </td>
                     <td>{e.leaves.total} {e.leaves.pending > 0 && <span className={own.pendingTag}>({e.leaves.pending} pending)</span>}</td>
+                    <td style={{ color: e.inactivityWarnings ? 'var(--red)' : 'var(--text3)', fontWeight: 700 }}>{e.inactivityWarnings}</td>
                   </tr>
                 ))}
               </tbody>
@@ -346,6 +349,7 @@ function ReportModal({ onClose, year, month, monthLabel }) {
 
 // ─── Leave Requests Panel ───────────────────────────────────────────────────────
 function LeaveRequestsPanel() {
+  const canDecide = usePermission('leaveApprovals', 'write')
   const [leaves, setLeaves]         = useState([])
   const [loading, setLoading]       = useState(true)
   const [statusFilter, setStatus]   = useState('pending')
@@ -439,7 +443,7 @@ function LeaveRequestsPanel() {
                 </div>
                 {/* Status badge or actions */}
                 <div className={own.leaveActions}>
-                  {isPending ? (
+                  {isPending && canDecide ? (
                     <>
                       <button
                         className={own.approveBtn}
@@ -472,6 +476,9 @@ function LeaveRequestsPanel() {
 }
 
 export default function UserManagement() {
+  const canViewBehaviour = usePermission('employeeBehaviour')
+  const canViewLeaves = usePermission('leaveApprovals')
+  const canSendReports = usePermission('dailyReports', 'write')
   const now = new Date()
   const [year, setYear]   = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1) // 1-indexed
@@ -480,13 +487,14 @@ export default function UserManagement() {
   const [sortBy, setSortBy]   = useState('name') // name | hours | days | leaves
   const [tick, setTick]       = useState(0) // drives live timers
   const [showReport, setShowReport] = useState(false)
-  const [view, setView]       = useState('attendance') // 'attendance' | 'leaves'
+  const [view, setView]       = useState(canViewBehaviour ? 'attendance' : 'leaves') // 'attendance' | 'leaves'
   const [pendingLeavesCount, setPendingLeavesCount] = useState(0)
   const [sendingReport, setSendingReport] = useState(false)
 
   const isViewingToday = year === now.getFullYear() && month === now.getMonth() + 1
 
   const fetch = useCallback(async (y, m) => {
+    if (!canViewBehaviour) { setLoading(false); return }
     setLoading(true)
     try {
       const { data: rows } = await api.get('/attendance/admin/summary', { params: { year: y, month: m } })
@@ -496,16 +504,17 @@ export default function UserManagement() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [canViewBehaviour])
 
   useEffect(() => { fetch(year, month) }, [fetch, year, month])
 
   // Fetch pending leave count for badge on the tab
   useEffect(() => {
+    if (!canViewLeaves) return
     api.get('/attendance/admin/leaves', { params: { status: 'pending' } })
       .then(({ data }) => setPendingLeavesCount(data.length))
       .catch(() => {})
-  }, [])
+  }, [canViewLeaves])
 
   // Tick every second to animate live timers when viewing current month
   useEffect(() => {
@@ -560,13 +569,13 @@ export default function UserManagement() {
         <div className={own.headerActions}>
           {/* View tabs */}
           <div className={own.viewTabs}>
-            <button
+            {canViewBehaviour && <button
               className={`${own.viewTab} ${view === 'attendance' ? own.viewTabActive : ''}`}
               onClick={() => setView('attendance')}
             >
               <Icon name="clock" size={12} /> Attendance
-            </button>
-            <button
+            </button>}
+            {canViewLeaves && <button
               className={`${own.viewTab} ${view === 'leaves' ? own.viewTabActive : ''}`}
               onClick={() => setView('leaves')}
             >
@@ -574,7 +583,7 @@ export default function UserManagement() {
               {pendingLeavesCount > 0 && (
                 <span className={own.tabBadge}>{pendingLeavesCount}</span>
               )}
-            </button>
+            </button>}
           </div>
 
           {view === 'attendance' && (
@@ -593,7 +602,7 @@ export default function UserManagement() {
               </button>
 
               {/* Send daily email report now */}
-              <button
+              {canSendReports && <button
                 className={own.sendReportBtn}
                 disabled={sendingReport}
                 onClick={async () => {
@@ -610,7 +619,7 @@ export default function UserManagement() {
               >
                 <Icon name="mail" size={14} />
                 {sendingReport ? 'Sending…' : 'Email Report'}
-              </button>
+              </button>}
             </>
           )}
         </div>
@@ -681,7 +690,7 @@ export default function UserManagement() {
         <p className={styles.emptyCell}>No users found.</p>
       ) : (
         <div className={own.grid}>
-          {sorted.map(({ user, daysWorked, workedSeconds, breakSeconds, leaves, today }) => {
+          {sorted.map(({ user, daysWorked, workedSeconds, breakSeconds, leaves, today, inactivityWarnings = 0 }) => {
             const avgHoursPerDay = daysWorked > 0
               ? Math.round(workedSeconds / daysWorked / 360) / 10
               : 0
@@ -728,6 +737,10 @@ export default function UserManagement() {
                   <div className={own.statItem}>
                     <div className={own.statVal} style={{ color: 'var(--text3)' }}>{fmtHours(breakSeconds)}</div>
                     <div className={own.statLbl}>Break Time</div>
+                  </div>
+                  <div className={own.statItem}>
+                    <div className={own.statVal} style={{ color: inactivityWarnings ? 'var(--red, #e53e3e)' : 'var(--text3)' }}>{inactivityWarnings}</div>
+                    <div className={own.statLbl}>Idle Warnings</div>
                   </div>
                 </div>
 

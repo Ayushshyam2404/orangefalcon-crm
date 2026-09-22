@@ -2,8 +2,15 @@ const express = require('express');
 const Task = require('../models/Task');
 const { protect } = require('../middleware/auth');
 const { getEasternDayRange } = require('../utils/easternTime');
+const { permissionFor } = require('../config/permissions');
 
 const router = express.Router();
+const TASK_CATEGORIES = ['sales', 'reputation', 'marketing', 'operations', 'internal-sales'];
+const taskPermissionModule = category => ({
+  reputation: 'reputationTasks', marketing: 'marketingTasks', operations: 'operationsTasks',
+  'internal-sales': 'internalSalesTasks', sales: 'tasks',
+}[category] || 'tasks');
+const canWriteTask = (req, task) => permissionFor(req.user, taskPermissionModule(task.category)).write;
 
 // GET /api/tasks - all tasks for current user
 router.get('/', protect, async (req, res) => {
@@ -47,7 +54,7 @@ router.get('/history', protect, async (req, res) => {
     if ((endDate - startDate) > 1000 * 60 * 60 * 24 * 62) {
       return res.status(400).json({ message: 'Task history range cannot exceed 62 days' });
     }
-    if (category && !['sales', 'reputation'].includes(category)) {
+    if (category && !TASK_CATEGORIES.includes(category)) {
       return res.status(400).json({ message: 'Invalid task category' });
     }
 
@@ -139,7 +146,7 @@ router.put('/complete-day', protect, async (req, res) => {
     const { date, category } = req.body;
     const range = getEasternDayRange(date);
     if (!range) return res.status(400).json({ message: 'Date must use YYYY-MM-DD format' });
-    if (category && !['sales', 'reputation'].includes(category)) {
+    if (category && !TASK_CATEGORIES.includes(category)) {
       return res.status(400).json({ message: 'Invalid task category' });
     }
 
@@ -180,6 +187,7 @@ router.post('/', protect, async (req, res) => {
     
     if (!taskName || !taskName.trim()) return res.status(400).json({ message: 'Task name is required' });
     if (!deadline) return res.status(400).json({ message: 'Deadline is required' });
+    if (category && !TASK_CATEGORIES.includes(category)) return res.status(400).json({ message: 'Invalid task category' });
 
     const task = await Task.create({
       taskName,
@@ -204,6 +212,7 @@ router.put('/:id', protect, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (!canWriteTask(req, task)) return res.status(403).json({ message: 'Write access to this task area is required' });
 
     // Check if user has permission to update
     if (task.createdBy.toString() !== req.user._id.toString() && task.assignedTo.toString() !== req.user._id.toString()) {
@@ -248,6 +257,7 @@ router.delete('/:id', protect, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (!canWriteTask(req, task)) return res.status(403).json({ message: 'Write access to this task area is required' });
 
     // Only creator can delete
     if (task.createdBy.toString() !== req.user._id.toString()) {

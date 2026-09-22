@@ -1,15 +1,25 @@
 const express = require('express');
 const Hotel = require('../models/Hotel');
 const { protect } = require('../middleware/auth');
+const { permissionFor } = require('../config/permissions');
 
 const router = express.Router();
 
-// Middleware to check if user is admin
-const adminOnly = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
+const hotelWrite = async (req, res, next) => {
+  try {
+    let category = req.body?.category || req.query?.category;
+    if (!category && req.params.id) {
+      if (!Hotel.db.base.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID format' });
+      category = (await Hotel.findById(req.params.id).select('category').lean())?.category;
+    }
+    const module = category === 'reputation' ? 'hotelScores' : 'hotels';
+    if (!permissionFor(req.user, module).write) {
+      return res.status(403).json({ message: 'Admin or configured write access is required' });
+    }
+    return next();
+  } catch (err) {
+    return next(err);
   }
-  next();
 };
 
 // GET /api/hotels - get all hotels (optionally filtered by ?category=sales|reputation)
@@ -27,7 +37,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // POST /api/hotels - create hotel (admin only)
-router.post('/', protect, adminOnly, async (req, res) => {
+router.post('/', protect, hotelWrite, async (req, res) => {
   try {
     const { name, city, category, photo } = req.body;
     if (!name || !city) {
@@ -52,7 +62,7 @@ router.post('/', protect, adminOnly, async (req, res) => {
 });
 
 // PUT /api/hotels/:id - update hotel (admin only)
-router.put('/:id', protect, adminOnly, async (req, res) => {
+router.put('/:id', protect, hotelWrite, async (req, res) => {
   try {
     const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -70,7 +80,7 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 });
 
 // DELETE /api/hotels/:id - delete hotel (admin only)
-router.delete('/:id', protect, adminOnly, async (req, res) => {
+router.delete('/:id', protect, hotelWrite, async (req, res) => {
   try {
     const hotel = await Hotel.findByIdAndDelete(req.params.id);
     if (!hotel) return res.status(404).json({ message: 'Hotel not found' });

@@ -95,3 +95,9 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext)
+
+export function usePermission(module, action = 'read') {
+  const { user } = useAuth()
+  if (user?.isMaster) return true
+  return user?.permissions?.[module]?.[action] === true
+}

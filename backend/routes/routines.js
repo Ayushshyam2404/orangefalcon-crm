@@ -1,8 +1,10 @@
 const express = require('express');
 const RoutineItem = require('../models/RoutineItem');
 const { protect } = require('../middleware/auth');
+const { permissionFor } = require('../config/permissions');
 
 const router = express.Router();
+const moduleFor = category => ({ reputation: 'reputationTasks', marketing: 'marketingTasks', operations: 'operationsTasks', 'internal-sales': 'internalSalesTasks' }[category] || 'tasks');
 
 // GET /api/routines — get current user's routine template
 router.get('/', protect, async (req, res) => {
@@ -41,6 +43,9 @@ router.post('/', protect, async (req, res) => {
 router.put('/:id', protect, async (req, res) => {
   try {
     const { taskName, defaultNote, order } = req.body;
+    const existing = await RoutineItem.findOne({ _id: req.params.id, user: req.user._id });
+    if (!existing) return res.status(404).json({ message: 'Routine item not found' });
+    if (!permissionFor(req.user, moduleFor(existing.category)).write) return res.status(403).json({ message: 'Write access to this task area is required' });
     const item = await RoutineItem.findOneAndUpdate(
       { _id: req.params.id, user: req.user._id },
       { taskName, defaultNote, order },
@@ -56,6 +61,9 @@ router.put('/:id', protect, async (req, res) => {
 // DELETE /api/routines/:id — delete a routine item
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const existing = await RoutineItem.findOne({ _id: req.params.id, user: req.user._id });
+    if (!existing) return res.status(404).json({ message: 'Routine item not found' });
+    if (!permissionFor(req.user, moduleFor(existing.category)).write) return res.status(403).json({ message: 'Write access to this task area is required' });
     const item = await RoutineItem.findOneAndDelete({ _id: req.params.id, user: req.user._id });
     if (!item) return res.status(404).json({ message: 'Routine item not found' });
     res.json({ message: 'Deleted' });

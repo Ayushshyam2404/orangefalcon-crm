@@ -9,6 +9,8 @@ const companySettingsSchema = new mongoose.Schema(
     expectedHoursPerDay: { type: Number, default: 8, min: 1, max: 24 },
     expectedDaysPerWeek: { type: Number, default: 5, min: 1, max: 7 },
     reportRecipients: { type: [String], default: [] },
+    inactivityMinutes: { type: Number, default: 5, min: 1, max: 120 },
+    inactivityWarningLimit: { type: Number, default: 3, min: 1, max: 100 },
   },
   { timestamps: true }
 );

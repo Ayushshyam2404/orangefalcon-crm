@@ -139,6 +139,8 @@ export default function RFPs() {
   const [modal, setModal] = useState(null) // null | 'new' | rfp object
   const [hotelModal, setHotelModal] = useState(null) // null | 'new' | hotel object
   const [user, setUser] = useState(null)
+  const canWrite = user?.isMaster || user?.permissions?.rfps?.write === true
+  const canManageHotels = user?.isMaster || user?.permissions?.settings?.write === true
 
   const fetchRfps = async () => {
     const params = {}
@@ -223,7 +225,7 @@ export default function RFPs() {
           <p className={styles.pageSubtitle}>{selectedHotel ? `Managing RFPs for ${selectedHotel.name}` : 'Manage RFPs property by property'}</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {user?.role === 'admin' && (
+          {canManageHotels && (
             <Button variant="secondary" onClick={() => setHotelModal('list')}>
               <Icon name="plus" size={14} /> Manage Hotels
             </Button>
@@ -231,9 +233,9 @@ export default function RFPs() {
           <Button variant="secondary" onClick={() => exportToExcel('rfps-export', 'RFPs', formatRFPs(rfps))}>
             <Icon name="doc" size={14} /> Export Excel
           </Button>
-          <Button variant="primary" onClick={() => setModal('new')}>
+          {canWrite && <Button variant="primary" onClick={() => setModal('new')}>
             <Icon name="plus" size={14} /> New RFP
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -285,7 +287,7 @@ export default function RFPs() {
               ) : rfps.map(r => (
                 <tr key={r._id} style={r.priority ? { background: 'rgba(241,196,15,0.03)' } : {}}>
                   <td>
-                    <button className={`${styles.starBtn} ${r.priority ? styles.starActive : ''}`} onClick={() => togglePriority(r)} title={r.priority ? 'Remove priority' : 'Mark priority'}>
+                    <button className={`${styles.starBtn} ${r.priority ? styles.starActive : ''}`} onClick={() => canWrite && togglePriority(r)} disabled={!canWrite} title={r.priority ? 'Remove priority' : 'Mark priority'}>
                       <Icon name={r.priority ? 'starFill' : 'star'} size={14} />
                     </button>
                   </td>
@@ -296,14 +298,14 @@ export default function RFPs() {
                   <td className={styles.dimText}>{r.price ? `$${Number(r.price).toLocaleString()}` : '—'}</td>
                   <td><Badge label={r.status} /></td>
                   <td className={styles.mutedText}>{r.addedBy?.name || '—'}</td>
-                  <td className={styles.actions}>
+                  <td className={styles.actions}>{canWrite && <>
                     <Button variant="secondary" size="sm" onClick={() => setModal(r)}>
                       <Icon name="pen" size={11} /> Edit
                     </Button>
                     <Button variant="danger" size="sm" onClick={() => handleDelete(r._id)}>
                       <Icon name="trash" size={11} />
                     </Button>
-                  </td>
+                  </>}</td>
                 </tr>
               ))}
             </tbody>
@@ -319,7 +321,7 @@ export default function RFPs() {
             <div key={r._id} className={styles.mCard} style={{ '--accentColor': r.priority ? 'var(--yellow)' : statusColor(r.status) }}>
               <div className={styles.mCardTop}>
                 <div className={styles.mCardName}>
-                  <button className={`${styles.starBtn} ${r.priority ? styles.starActive : ''}`} onClick={() => togglePriority(r)} title={r.priority ? 'Remove priority' : 'Mark priority'}>
+                  <button className={`${styles.starBtn} ${r.priority ? styles.starActive : ''}`} onClick={() => canWrite && togglePriority(r)} disabled={!canWrite} title={r.priority ? 'Remove priority' : 'Mark priority'}>
                     <Icon name={r.priority ? 'starFill' : 'star'} size={14} color={r.priority ? 'var(--yellow)' : 'var(--text3)'} />
                   </button>
                   <span>{r.client}</span>
@@ -341,14 +343,14 @@ export default function RFPs() {
                   <span style={{ marginLeft: 'auto', color: 'var(--text3)', fontSize: 11.5 }}>Added by {r.addedBy?.name || '—'}</span>
                 </div>
               </div>
-              <div className={styles.mCardActions}>
+              {canWrite && <div className={styles.mCardActions}>
                 <Button variant="secondary" size="sm" onClick={() => setModal(r)}>
                   <Icon name="pen" size={11} /> Edit
                 </Button>
                 <Button variant="danger" size="sm" onClick={() => handleDelete(r._id)}>
                   <Icon name="trash" size={11} /> Delete
                 </Button>
-              </div>
+              </div>}
             </div>
           ))}
         </div>

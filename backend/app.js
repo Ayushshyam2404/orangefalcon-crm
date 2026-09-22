@@ -22,6 +22,8 @@ const backupRoutes = require('./routes/backup');
 const externalRoutes = require('./routes/external');
 const searchRoutes = require('./routes/search');
 const propertiesRoutes = require('./routes/properties');
+const activityRoutes = require('./routes/activity');
+const overviewRoutes = require('./routes/overview');
 
 const app = express();
 
@@ -55,6 +57,8 @@ app.use('/api/report', reportRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/properties', propertiesRoutes);
+app.use('/api/activity', activityRoutes);
+app.use('/api/overview', overviewRoutes);
 
 app.get('/api/health', (req, res) =>
   res.json({ status: 'OK', message: 'Orange Falcon CRM API running' })

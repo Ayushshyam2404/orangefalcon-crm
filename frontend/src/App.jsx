@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider, useAuth, usePermission } from './context/AuthContext'
 import { Sidebar } from './components/Sidebar'
 import { AttendanceModal } from './components/AttendanceModal'
 import WelcomeScreen from './components/WelcomeScreen'
@@ -26,6 +26,10 @@ import ReputationTasker from './pages/ReputationTasker'
 import ReputationCalls from './pages/ReputationCalls'
 import Properties from './pages/Properties'
 import PropertyDetail from './pages/PropertyDetail'
+import DepartmentDashboard from './pages/DepartmentDashboard'
+import ExecutiveOverview from './pages/ExecutiveOverview'
+import AccessControl from './pages/AccessControl'
+import InactivityMonitor from './components/InactivityMonitor'
 import api from './utils/api'
 
 // ── Force change password modal ───────────────────────────────────────────────
@@ -195,7 +199,7 @@ function ProtectedLayout() {
   }, [showWelcome])
 
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.isMaster || user?.permissions?.alerts?.read) {
       api.get('/alerts').then(r => setAlertCount(r.data.length)).catch(() => {})
     }
   }, [user])
@@ -221,6 +225,7 @@ function ProtectedLayout() {
       )}
       {/* Forced password change blocks access until complete */}
       {user.mustChangePassword && <ForceChangePasswordModal />}
+      <InactivityMonitor />
 
       <Sidebar alertCount={alertCount} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onOpenAttendance={() => setAttendanceOpen(true)} />
       {sidebarOpen && <div className="sidebarOverlay" onClick={() => setSidebarOpen(false)} />}
@@ -239,10 +244,44 @@ function ProtectedLayout() {
   )
 }
 
-function AdminRoute() {
-  const { user } = useAuth()
-  if (user?.role !== 'admin') return <Navigate to="/" replace />
+function PermissionRoute({ module }) {
+  const allowed = usePermission(module)
+  if (!allowed) return <Navigate to="/" replace />
   return <Outlet />
+}
+
+function PermissionAnyRoute({ modules }) {
+  const { user } = useAuth()
+  const allowed = user?.isMaster || modules.some(module => user?.permissions?.[module]?.read === true)
+  if (!allowed) return <Navigate to="/" replace />
+  return <Outlet />
+}
+
+function MasterRoute() {
+  const { user } = useAuth()
+  return user?.isMaster ? <Outlet /> : <Navigate to="/" replace />
+}
+
+function HomeRoute() {
+  const { user } = useAuth()
+  const can = key => user?.isMaster || user?.permissions?.[key]?.read === true
+  if (can('executiveOverview')) return <ExecutiveOverview />
+  if (user?.department === 'marketing' && can('marketingDashboard')) return <DepartmentDashboard category="marketing" tasksPath="/marketing-tasks" />
+  if (user?.department === 'operations' && can('operationsDashboard')) return <DepartmentDashboard category="operations" tasksPath="/operations-tasks" />
+  if (user?.department === 'internal-sales' && can('internalSalesDashboard')) return <DepartmentDashboard category="internal-sales" tasksPath="/internal-sales-tasks" />
+  if (user?.department === 'reputation' && can('reputationDashboard')) return <ReputationDashboard />
+  if (can('dashboard')) return <Dashboard />
+  const fallback = [
+    ['marketingTasks', '/marketing-tasks'], ['operationsTasks', '/operations-tasks'],
+    ['internalSalesTasks', '/internal-sales-tasks'], ['reputationTasks', '/reputation-tasks'],
+    ['tasks', '/tasks'], ['calendar', '/calendar'], ['announcements', '/announcements'],
+  ].find(([key]) => can(key))
+  return fallback ? <Navigate to={fallback[1]} replace /> : (
+    <div style={{ maxWidth: 560, margin: '72px auto', padding: 32, textAlign: 'center' }}>
+      <h1 style={{ marginBottom: 10 }}>No sections assigned</h1>
+      <p style={{ color: 'var(--text2)', lineHeight: 1.6 }}>A Master user needs to assign at least one section to this account in Access Control.</p>
+    </div>
+  )
 }
 
 function PublicRoute() {
@@ -268,30 +307,36 @@ export default function App() {
           </Route>
 
           <Route element={<ProtectedLayout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/rfps" element={<RFPs />} />
-            <Route path="/rfps-consideration" element={<RFPsInConsideration />} />
-            <Route path="/calls" element={<Calls />} />
-            <Route path="/groups" element={<Groups />} />
-            <Route path="/revenue-analytics" element={<RevenueAnalytics />} />
-            <Route path="/tasks" element={<Tasker />} />
-            <Route path="/leads" element={<InboundLeads />} />
-            <Route path="/corporate" element={<CorporateProfiles />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/hotel-scores" element={<HotelScores />} />
-            <Route path="/reputation" element={<ReputationDashboard />} />
-            <Route path="/reputation-tasks" element={<ReputationTasker />} />
-            <Route path="/reputation-calls" element={<ReputationCalls />} />
-            <Route path="/properties" element={<Properties />} />
-            <Route path="/properties/view" element={<PropertyDetail />} />
+            <Route path="/" element={<HomeRoute />} />
+            <Route element={<PermissionRoute module="dashboard" />}><Route path="/sales" element={<Dashboard />} /></Route>
+            <Route element={<PermissionRoute module="rfps" />}><Route path="/rfps" element={<RFPs />} /></Route>
+            <Route element={<PermissionRoute module="rfpConsideration" />}><Route path="/rfps-consideration" element={<RFPsInConsideration />} /></Route>
+            <Route element={<PermissionRoute module="calls" />}><Route path="/calls" element={<Calls />} /></Route>
+            <Route element={<PermissionRoute module="groups" />}><Route path="/groups" element={<Groups />} /></Route>
+            <Route element={<PermissionRoute module="revenueAnalytics" />}><Route path="/revenue-analytics" element={<RevenueAnalytics />} /></Route>
+            <Route element={<PermissionRoute module="tasks" />}><Route path="/tasks" element={<Tasker />} /></Route>
+            <Route element={<PermissionRoute module="leads" />}><Route path="/leads" element={<InboundLeads />} /></Route>
+            <Route element={<PermissionRoute module="corporate" />}><Route path="/corporate" element={<CorporateProfiles />} /></Route>
+            <Route element={<PermissionRoute module="profile" />}><Route path="/profile" element={<Profile />} /></Route>
+            <Route element={<PermissionRoute module="calendar" />}><Route path="/calendar" element={<Calendar />} /></Route>
+            <Route element={<PermissionRoute module="announcements" />}><Route path="/announcements" element={<Announcements />} /></Route>
+            <Route element={<PermissionRoute module="hotelScores" />}><Route path="/hotel-scores" element={<HotelScores />} /></Route>
+            <Route element={<PermissionRoute module="reputationDashboard" />}><Route path="/reputation" element={<ReputationDashboard />} /></Route>
+            <Route element={<PermissionRoute module="reputationTasks" />}><Route path="/reputation-tasks" element={<Tasker category="reputation" title="Reputation Tasks" />} /></Route>
+            <Route element={<PermissionRoute module="reputationCalls" />}><Route path="/reputation-calls" element={<ReputationCalls />} /></Route>
+            <Route element={<PermissionRoute module="properties" />}><Route path="/properties" element={<Properties />} /><Route path="/properties/view" element={<PropertyDetail />} /></Route>
+            <Route element={<PermissionRoute module="marketingDashboard" />}><Route path="/marketing" element={<DepartmentDashboard category="marketing" tasksPath="/marketing-tasks" />} /></Route>
+            <Route element={<PermissionRoute module="marketingTasks" />}><Route path="/marketing-tasks" element={<Tasker category="marketing" title="Marketing Tasks" subtitle="Plan and record videos, graphics, campaigns and content work" />} /></Route>
+            <Route element={<PermissionRoute module="operationsDashboard" />}><Route path="/operations" element={<DepartmentDashboard category="operations" tasksPath="/operations-tasks" />} /></Route>
+            <Route element={<PermissionRoute module="operationsTasks" />}><Route path="/operations-tasks" element={<Tasker category="operations" title="Operations Tasks" subtitle="Track executive assistance and daily operational work" />} /></Route>
+            <Route element={<PermissionRoute module="internalSalesDashboard" />}><Route path="/internal-sales" element={<DepartmentDashboard category="internal-sales" tasksPath="/internal-sales-tasks" />} /></Route>
+            <Route element={<PermissionRoute module="internalSalesTasks" />}><Route path="/internal-sales-tasks" element={<Tasker category="internal-sales" title="Internal Product Sales Tasks" subtitle="Track your company’s own product sales activity" />} /></Route>
+            <Route element={<PermissionRoute module="executiveOverview" />}><Route path="/company-overview" element={<ExecutiveOverview />} /></Route>
 
-            <Route element={<AdminRoute />}>
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/alerts" element={<Alerts />} />
-              <Route path="/user-management" element={<UserManagement />} />
-            </Route>
+            <Route element={<PermissionAnyRoute modules={['appearance', 'companySettings', 'reportRecipients', 'dailyReports', 'backupRestore', 'userManagement', 'hotels', 'hotelScores']} />}><Route path="/settings" element={<Settings />} /></Route>
+            <Route element={<PermissionRoute module="alerts" />}><Route path="/alerts" element={<Alerts />} /></Route>
+            <Route element={<PermissionAnyRoute modules={['employeeBehaviour', 'leaveApprovals']} />}><Route path="/user-management" element={<UserManagement />} /></Route>
+            <Route element={<MasterRoute />}><Route path="/access-control" element={<AccessControl />} /></Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -6,15 +6,15 @@ import api from '../utils/api'
 import styles from './GlobalSearch.module.css'
 
 const MODES = [
-  { cmd: 'calls', mode: 'calls', label: 'Calls', icon: 'phone', hint: 'Search calls by name, phone or notes' },
-  { cmd: 'rfps', mode: 'rfps', label: 'RFPs', icon: 'doc', hint: 'Search RFPs by client or notes' },
-  { cmd: 'leads', mode: 'leads', label: 'Inbound Leads', icon: 'funnel', hint: 'Search leads by contact, company, email or phone' },
-  { cmd: 'corporate', mode: 'corporate', label: 'Corporate Profiles', icon: 'building', hint: 'Search corporate profiles' },
-  { cmd: 'scores', mode: 'scores', label: 'Hotel Scores', icon: 'star', hint: 'Search reputation scores by hotel name' },
-  { cmd: 'groups', mode: 'groups', label: 'Groups', icon: 'users', hint: 'Search groups by name' },
-  { cmd: 'tasks', mode: 'tasks', label: 'Tasks', icon: 'check', hint: 'Search tasks by name' },
-  { cmd: 'announcements', mode: 'announcements', label: 'Announcements', icon: 'megaphone', hint: 'Search announcements' },
-  { cmd: 'users', mode: 'users', label: 'Users', icon: 'users', hint: 'Search team members', adminOnly: true },
+  { cmd: 'calls', mode: 'calls', label: 'Calls', icon: 'phone', hint: 'Search calls by name, phone or notes', modules: ['calls', 'reputationCalls'] },
+  { cmd: 'rfps', mode: 'rfps', label: 'RFPs', icon: 'doc', hint: 'Search RFPs by client or notes', modules: ['rfps', 'rfpConsideration'] },
+  { cmd: 'leads', mode: 'leads', label: 'Inbound Leads', icon: 'funnel', hint: 'Search leads by contact, company, email or phone', modules: ['leads'] },
+  { cmd: 'corporate', mode: 'corporate', label: 'Corporate Profiles', icon: 'building', hint: 'Search corporate profiles', modules: ['corporate'] },
+  { cmd: 'scores', mode: 'scores', label: 'Hotel Scores', icon: 'star', hint: 'Search reputation scores by hotel name', modules: ['hotelScores'] },
+  { cmd: 'groups', mode: 'groups', label: 'Groups', icon: 'users', hint: 'Search groups by name', modules: ['groups'] },
+  { cmd: 'tasks', mode: 'tasks', label: 'Tasks', icon: 'check', hint: 'Search tasks by name', modules: ['tasks', 'reputationTasks', 'marketingTasks', 'operationsTasks', 'internalSalesTasks'] },
+  { cmd: 'announcements', mode: 'announcements', label: 'Announcements', icon: 'megaphone', hint: 'Search announcements', modules: ['announcements'] },
+  { cmd: 'users', mode: 'users', label: 'Users', icon: 'users', hint: 'Search team members', modules: ['employeeBehaviour', 'userManagement'] },
 ]
 
 // Aliases → canonical command
@@ -51,7 +51,7 @@ export function GlobalSearch() {
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef(null)
 
-  const modes = useMemo(() => MODES.filter(m => !m.adminOnly || user?.role === 'admin'), [user])
+  const modes = useMemo(() => MODES.filter(m => user?.isMaster || m.modules.some(key => user?.permissions?.[key]?.read)), [user])
   const parsed = useMemo(() => parseInput(query), [query])
 
   // Open with Cmd/Ctrl+K, close with Escape

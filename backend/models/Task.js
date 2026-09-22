@@ -6,7 +6,7 @@ const taskSchema = new mongoose.Schema(
     deadline: { type: Date, required: true },
     status: { type: String, enum: ['pending', 'in-progress', 'completed'], default: 'pending' },
     notes: { type: String, trim: true, default: '' },
-    category: { type: String, enum: ['sales', 'reputation'], default: 'sales' },
+    category: { type: String, enum: ['sales', 'reputation', 'marketing', 'operations', 'internal-sales'], default: 'sales' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     completedAt: { type: Date, default: null },

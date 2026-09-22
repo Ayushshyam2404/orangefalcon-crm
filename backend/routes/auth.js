@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Alert = require('../models/Alert');
 const AttendanceLog = require('../models/AttendanceLog');
-const { protect } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
+const { defaultPermissions } = require('../config/permissions');
 
 const router = express.Router();
 
@@ -66,6 +67,11 @@ router.post('/login', async (req, res) => {
       await Alert.create({ message: `${user.name} logged in`, type: 'Login Event', iconType: 'login' });
     }
 
+    const explicitPermissions = user.permissions instanceof Map ? Object.fromEntries(user.permissions) : (user.permissions || {});
+    const effectivePermissions = {
+      ...defaultPermissions(user.department, user.role),
+      ...explicitPermissions,
+    };
     res.json({
       token: generateToken(user._id),
       mustChangePassword: user.mustChangePassword,
@@ -74,6 +80,9 @@ router.post('/login', async (req, res) => {
         name: user.name,
         username: user.username,
         role: user.role,
+        isMaster: user.isMaster,
+        department: user.department,
+        permissions: effectivePermissions,
         title: user.title,
         avatar: user.avatar,
         wallpaper: user.wallpaper,
@@ -117,7 +126,13 @@ router.post('/logout', protect, async (req, res) => {
 // GET /api/auth/me
 router.get('/me', protect, async (req, res) => {
   const user = await User.findById(req.user._id).select('-password +wallpaper');
-  res.json(user);
+  const data = user.toObject();
+  const explicitPermissions = user.permissions instanceof Map ? Object.fromEntries(user.permissions) : (user.permissions || {});
+  data.permissions = {
+    ...defaultPermissions(user.department, user.role),
+    ...explicitPermissions,
+  };
+  res.json(data);
 });
 
 // POST /api/auth/change-initial-password — first-login forced password change
@@ -143,7 +158,7 @@ router.post('/change-initial-password', protect, async (req, res) => {
 });
 
 // PUT /api/auth/profile — update own profile
-router.put('/profile', protect, async (req, res) => {
+router.put('/profile', protect, requirePermission('profile', 'write'), async (req, res) => {
   try {
     const { name, email, phone, bio, gender, age, avatar, wallpaper, wallpaperTone, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user._id).select('+wallpaper');
@@ -183,6 +198,12 @@ router.put('/profile', protect, async (req, res) => {
       name: user.name,
       username: user.username,
       role: user.role,
+      isMaster: user.isMaster,
+      department: user.department,
+      permissions: {
+        ...defaultPermissions(user.department, user.role),
+        ...(user.permissions instanceof Map ? Object.fromEntries(user.permissions) : (user.permissions || {})),
+      },
       title: user.title,
       email: user.email,
       phone: user.phone,
@@ -199,7 +220,7 @@ router.put('/profile', protect, async (req, res) => {
 });
 
 // POST /api/auth/clock-in
-router.post('/clock-in', protect, async (req, res) => {
+router.post('/clock-in', protect, requirePermission('attendance', 'write'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (user.clockedIn) return res.status(400).json({ message: 'Already clocked in' });
@@ -217,7 +238,7 @@ router.post('/clock-in', protect, async (req, res) => {
 });
 
 // POST /api/auth/clock-out
-router.post('/clock-out', protect, async (req, res) => {
+router.post('/clock-out', protect, requirePermission('attendance', 'write'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user.clockedIn) return res.status(400).json({ message: 'Not clocked in' });
@@ -252,7 +273,7 @@ router.post('/clock-out', protect, async (req, res) => {
 });
 
 // POST /api/auth/break-start
-router.post('/break-start', protect, async (req, res) => {
+router.post('/break-start', protect, requirePermission('attendance', 'write'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user.clockedIn) return res.status(400).json({ message: 'Not clocked in' });
@@ -267,7 +288,7 @@ router.post('/break-start', protect, async (req, res) => {
 });
 
 // POST /api/auth/break-end
-router.post('/break-end', protect, async (req, res) => {
+router.post('/break-end', protect, requirePermission('attendance', 'write'), async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user.onBreak) return res.status(400).json({ message: 'Not on break' });

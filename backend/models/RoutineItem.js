@@ -6,7 +6,7 @@ const routineItemSchema = new mongoose.Schema(
     taskName: { type: String, required: true, trim: true },
     defaultNote: { type: String, trim: true, default: '' },
     order: { type: Number, default: 0 },
-    category: { type: String, enum: ['sales', 'reputation'], default: 'sales' },
+    category: { type: String, enum: ['sales', 'reputation', 'marketing', 'operations', 'internal-sales'], default: 'sales' },
   },
   { timestamps: true }
 );

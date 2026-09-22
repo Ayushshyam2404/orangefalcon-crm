@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AttendanceLog = require('../models/AttendanceLog');
 const LeaveRequest = require('../models/LeaveRequest');
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 
 router.use(protect);
 
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/attendance — manually upsert a log entry (admin only)
-router.post('/', adminOnly, async (req, res) => {
+router.post('/', requirePermission('employeeBehaviour', 'write'), async (req, res) => {
   try {
     const { userId, date, clockInTime, clockOutTime, workedSeconds, breakSeconds } = req.body;
     if (!userId || !date) return res.status(400).json({ message: 'userId and date are required' });
@@ -72,7 +72,7 @@ router.post('/leaves', async (req, res) => {
 });
 
 // PATCH /api/attendance/leaves/:id/status — approve or deny (admin only)
-router.patch('/leaves/:id/status', adminOnly, async (req, res) => {
+router.patch('/leaves/:id/status', requirePermission('leaveApprovals', 'write'), async (req, res) => {
   try {
     const { status } = req.body;
     if (!['approved', 'denied'].includes(status)) {
@@ -106,7 +106,7 @@ router.delete('/leaves/:id', async (req, res) => {
 });
 
 // GET /api/attendance/admin/leaves — all leave requests with user info (admin only)
-router.get('/admin/leaves', adminOnly, async (req, res) => {
+router.get('/admin/leaves', requirePermission('leaveApprovals'), async (req, res) => {
   try {
     const { status } = req.query;
     const filter = {};
@@ -121,9 +121,10 @@ router.get('/admin/leaves', adminOnly, async (req, res) => {
 });
 
 // GET /api/attendance/admin/summary?year=YYYY&month=M — all users' stats (admin only)
-router.get('/admin/summary', adminOnly, async (req, res) => {
+router.get('/admin/summary', requirePermission('employeeBehaviour'), async (req, res) => {
   try {
     const User = require('../models/User');
+    const InactivityWarning = require('../models/InactivityWarning');
     const { year, month } = req.query;
 
     const dateFilter = {};
@@ -169,8 +170,16 @@ router.get('/admin/summary', adminOnly, async (req, res) => {
     const todayLogMap = Object.fromEntries(todayLogs.map(l => [l.user.toString(), l]));
 
     const users = await User.find()
-      .select('name username role title avatar online clockedIn clockInTime clockOutTime onBreak breakStart breakSeconds')
+      .select('name username role title avatar online department clockedIn clockInTime clockOutTime onBreak breakStart breakSeconds inactivityWarnings')
       .sort({ name: 1 });
+
+    const warningMatch = {};
+    if (year && month) warningMatch.date = { $regex: `^${year}-${String(month).padStart(2, '0')}` };
+    const warningAgg = await InactivityWarning.aggregate([
+      { $match: warningMatch },
+      { $group: { _id: '$user', count: { $sum: 1 } } },
+    ]);
+    const warningMap = Object.fromEntries(warningAgg.map(w => [w._id.toString(), w.count]));
 
     const result = users.map(u => {
       const uid = u._id.toString();
@@ -179,7 +188,8 @@ router.get('/admin/summary', adminOnly, async (req, res) => {
       const todayLog = todayLogMap[uid] || null;
 
       return {
-        user: { _id: u._id, name: u.name, username: u.username, role: u.role, title: u.title, avatar: u.avatar, online: u.online },
+        user: { _id: u._id, name: u.name, username: u.username, role: u.role, title: u.title, avatar: u.avatar, online: u.online, department: u.department },
+        inactivityWarnings: warningMap[uid] || 0,
         daysWorked:    log.daysWorked,
         workedSeconds: log.workedSeconds,
         breakSeconds:  log.breakSeconds,

@@ -2,8 +2,10 @@ const express = require('express');
 const Call = require('../models/Call');
 const Hotel = require('../models/Hotel');
 const { protect } = require('../middleware/auth');
+const { permissionFor } = require('../config/permissions');
 
 const router = express.Router();
+const canWriteCall = (req, call) => permissionFor(req.user, call.category === 'reputation' ? 'reputationCalls' : 'calls').write;
 
 // GET /api/calls
 router.get('/', protect, async (req, res) => {
@@ -203,6 +205,7 @@ router.patch('/:id/outcome', protect, async (req, res) => {
 
     const call = await Call.findById(req.params.id);
     if (!call) return res.status(404).json({ message: 'Call lead not found' });
+    if (!canWriteCall(req, call)) return res.status(403).json({ message: 'Write access to this call area is required' });
     const wasPending = call.status === 'pending';
     call.outcome = outcome;
     call.notes = String(notes || '').trim();
@@ -226,6 +229,9 @@ router.patch('/:id/outcome', protect, async (req, res) => {
 // PUT /api/calls/:id
 router.put('/:id', protect, async (req, res) => {
   try {
+    const existing = await Call.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Call not found' });
+    if (!canWriteCall(req, existing)) return res.status(403).json({ message: 'Write access to this call area is required' });
     const call = await Call.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
       .populate('loggedBy', 'name username')
       .populate('importedBy', 'name username')
@@ -240,6 +246,9 @@ router.put('/:id', protect, async (req, res) => {
 // DELETE /api/calls/:id
 router.delete('/:id', protect, async (req, res) => {
   try {
+    const existing = await Call.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Call not found' });
+    if (!canWriteCall(req, existing)) return res.status(403).json({ message: 'Write access to this call area is required' });
     const call = await Call.findByIdAndDelete(req.params.id);
     if (!call) return res.status(404).json({ message: 'Call not found' });
     res.json({ message: 'Call deleted' });

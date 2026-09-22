@@ -10,6 +10,17 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true, trim: true, lowercase: true },
     password: { type: String, required: true, minlength: 6 },
     role: { type: String, enum: ['admin', 'staff'], default: 'staff' },
+    isMaster: { type: Boolean, default: false },
+    department: {
+      type: String,
+      enum: ['sales', 'reputation', 'marketing', 'operations', 'internal-sales', 'management'],
+      default: 'sales',
+    },
+    // Per-module { read, write } overrides. Missing keys use department defaults.
+    permissions: { type: Map, of: new mongoose.Schema({
+      read: { type: Boolean, default: false },
+      write: { type: Boolean, default: false },
+    }, { _id: false }), default: {} },
     title: { type: String, default: '', trim: true },
     email: { type: String, default: '', trim: true },
     phone: { type: String, default: '', trim: true },
@@ -34,6 +45,8 @@ const userSchema = new mongoose.Schema(
     mustChangePassword:   { type: Boolean, default: false },
     failedLoginAttempts:  { type: Number,  default: 0 },
     lockUntil:            { type: Date,    default: null },
+    inactivityWarnings:   { type: Number,  default: 0 },
+    lastActivityAt:       { type: Date,    default: null },
   },
   { timestamps: true }
 );

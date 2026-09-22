@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect, requirePermission } = require('../middleware/auth');
 const { generateAndSend } = require('../services/dailyReport');
 
 router.use(protect);
 
 // POST /api/report/send — manually trigger the daily report (admin only)
-router.post('/send', adminOnly, async (req, res) => {
+router.post('/send', requirePermission('dailyReports', 'write'), async (req, res) => {
   try {
     const result = await generateAndSend();
     res.json({ message: 'Report sent successfully', ...result });

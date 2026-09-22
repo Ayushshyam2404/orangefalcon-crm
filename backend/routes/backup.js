@@ -2,7 +2,7 @@
 
 const express          = require('express');
 const router           = express.Router();
-const { protect, adminOnly } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 const User             = require('../models/User');
 const Hotel            = require('../models/Hotel');
@@ -20,9 +20,9 @@ const CorporateProfile = require('../models/CorporateProfile');
 const CompanySettings  = require('../models/CompanySettings');
 const LeaveRequest     = require('../models/LeaveRequest');
 const RoutineItem      = require('../models/RoutineItem');
+const InactivityWarning = require('../models/InactivityWarning');
 
-// All routes require admin auth
-router.use(protect, adminOnly);
+router.use(protect);
 
 // ── GET /api/backup/export ──────────────────────────────────────────────────
 // Exports every collection as a single human-readable JSON file.
@@ -31,7 +31,7 @@ router.get('/export', async (req, res) => {
     const [
       users, hotels, rfps, calls, leads, tasks, alerts, groups, events,
       hotelScores, announcements, attendanceLogs, corporateProfiles,
-      companySettings, leaveRequests, routineItems,
+      companySettings, leaveRequests, routineItems, inactivityWarnings,
     ] = await Promise.all([
       User.find().select('+wallpaper').lean(),
       Hotel.find().lean(),
@@ -49,6 +49,7 @@ router.get('/export', async (req, res) => {
       CompanySettings.find().lean(),
       LeaveRequest.find().lean(),
       RoutineItem.find().lean(),
+      InactivityWarning.find().lean(),
     ]);
 
     const now    = new Date();
@@ -79,6 +80,7 @@ router.get('/export', async (req, res) => {
           companySettings:   companySettings.length,
           leaveRequests:     leaveRequests.length,
           routineItems:      routineItems.length,
+          inactivityWarnings: inactivityWarnings.length,
         },
       },
       users,
@@ -97,6 +99,7 @@ router.get('/export', async (req, res) => {
       companySettings,
       leaveRequests,
       routineItems,
+      inactivityWarnings,
     };
 
     const json = JSON.stringify(backup, null, 2);
@@ -167,6 +170,7 @@ router.post(
       await restoreCollection(CompanySettings,  'companySettings');
       await restoreCollection(LeaveRequest,     'leaveRequests');
       await restoreCollection(RoutineItem,      'routineItems');
+      await restoreCollection(InactivityWarning,'inactivityWarnings');
 
       console.log(`[Backup] ✅ Restore by ${req.user.username} from backup dated ${backup._meta.exportedAt}`);
 
